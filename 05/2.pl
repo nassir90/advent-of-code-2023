@@ -22,7 +22,7 @@ for (@lines) {
     }
 }
 
-$ranges{$_}->@* = sort { $a->[1] <=> $b->[1] } $ranges{$_}->@*; for (keys %ranges);
+$ranges{$_}->@* = sort { $a->[1] <=> $b->[1] } $ranges{$_}->@* for (keys %ranges);
 
 push @blocks, [$1, $1 + $2 - 1] while ($seeds =~ /(\d+) (\d+)/g);
 
