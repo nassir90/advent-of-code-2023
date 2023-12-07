@@ -3,19 +3,18 @@
 
 while (<>) {
     my ($card, $reward) = split " ";
-    my @chars = split //, $card;
-    my @d = (), %frequencies = (), $max = A;
+    my @chars = (split //, $card), @d = (), %frequencies = (), $max = A;
     $frequencies{$_}++ for @chars;
     $_ ne J && $frequencies{$max} < $frequencies{$_} && ($max=$_) for @c;
     $frequencies{$max} += $frequencies{J}, $frequencies{J} = 0;
     $d[$_]++ for (values %frequencies);
-    $type="6", $name = "five of a kind"  if $d[5] == 1;
-    $type="5", $name = "four of a kind"  if $d[4] == 1;
-    $type="4", $name = "full house"      if $d[3] == 1 && $d[2] == 1;
-    $type="3", $name = "three of a kind" if $d[3] == 1 && $d[1] == 2;
-    $type="2", $name = "two pair"        if $d[2] == 2 && $d[1] == 1;
-    $type="1", $name = "one pair"        if $d[2] == 1 && $d[1] == 3;
-    $type="0", $name = "high card"       if $d[1] == 5;
+    $type=6, $name = "five of a kind"  if $d[5] == 1;
+    $type=5, $name = "four of a kind"  if $d[4] == 1;
+    $type=4, $name = "full house"      if $d[3] == 1 && $d[2] == 1;
+    $type=3, $name = "three of a kind" if $d[3] == 1 && $d[1] == 2;
+    $type=2, $name = "two pair"        if $d[2] == 2 && $d[1] == 1;
+    $type=1, $name = "one pair"        if $d[2] == 1 && $d[1] == 3;
+    $type=0, $name = "high card"       if $d[1] == 5;
     @digits = ($type, @r{@chars});
     print "@digits $card → $name ($max)\n";
     push @ids, ["@digits", $card, $name, $reward];
