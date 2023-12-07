@@ -1,5 +1,5 @@
 @c = (A,K,Q,T,9,8,7,6,5,4,3,2,J);
-%r = map { $c[$_] => sprintf "%02d", $#c-$_ } 0..$#c;
+@r{@c} = map { sprintf "%02d", $#c-$_ } 0..$#c;
 
 while (<>) {
     my ($card, $reward) = split " ";
@@ -25,9 +25,9 @@ print "---\n";
 
 @ids = sort { $a->[0] cmp $b->[0] } @ids;
 for $rank (0..$#ids) {
-    ($number, $card, $name, $reward) = $ids[$rank]->@*;
+    ($digits, $card, $name, $reward) = $ids[$rank]->@*;
     $s += ($absolutereward = ($rank+1) * $reward);
-    print "$number $card → $name ($rank*$reward=$absolutereward)\n";
+    print "$digits $card → $name ($rank*$reward=$absolutereward)\n";
 }
 
 print "$s\n";
