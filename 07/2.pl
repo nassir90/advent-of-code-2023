@@ -1,4 +1,4 @@
-@c = (A,K,Q,J,T,9,8,7,6,5,4,3,2);
+@c = (A,K,Q,T,9,8,7,6,5,4,3,2,J);
 %r = map { $c[$_] => sprintf "%02d", $#c-$_ } 0..$#c;
 push @cards, [split " "] while (<>);
 for (@cards) {
@@ -7,7 +7,7 @@ for (@cards) {
     @f{@c} = map { scalar [$card=~/$_/g]->@* } @c;
     my $max = A;
     $_ ne J && $f{$max} < $f{$_} && ($max=$_) for @c;
-    @f{@c} = map { scalar [$card=~s/J/$max/gr=~/$_/g]->@* } @c;
+    @f{@c} = map { scalar [$card=~s/J/$max/gra=~/$_/g]->@* } @c;
     $d[$_]++ for (values %f);
     
     $type="06", $name = "five of a kind"  if $d[5] == 1;
