@@ -1,3 +1,7 @@
+# Take in a list of hands (sets of five cards) and order them based on
+# a value, which is based on the class of the hand ($value) and the
+# contents of the hand (@r{@chars}). After ordering, sum the products
+# of the rank-bid pairs.
 @c = (A,K,Q,J,T,9,8,7,6,5,4,3,2);
 %r = map { $c[$_] => sprintf "%02d", $#c-$_ } 0..$#c;
 push @cards, [split " "] while (<>);

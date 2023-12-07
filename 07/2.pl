@@ -1,3 +1,8 @@
+# Take in a list of hands (sets of five cards) and order them based on
+# a value, which is based on the class of the hand ($type) and the
+# contents of the hand (@r{@chars}). After ordering, sum the products
+# of the rank-bid pairs. Part 2 introduced jokers that are treated as
+# the most common non-joker card in a deck for hand class computation.
 @c = (A,K,Q,T,9,8,7,6,5,4,3,2,J);
 @r{@c} = map { sprintf "%02d", $#c-$_ } 0..$#c;
 
