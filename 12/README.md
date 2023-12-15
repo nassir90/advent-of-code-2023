@@ -1,5 +1,6 @@
 # Thinking
 
+```
 ???#????????.???#??. 1,1,5,6
 
 #..#.#####...######. 1,1,5,6
@@ -35,6 +36,7 @@
 
 ###.|....###
 ###....|.###
+```
 
 Maybe if a node could only define the amount of space to the right of
 it? Though that breaks my main optimisation (?). How to disambiguate /

@@ -7,4 +7,6 @@ puzzle input on standard input. Run by executing:
 perl X.pl < INPUT
 ```
 
+Everything has been tested on perl 5.38.
+
 2021 solutions can be found [here](https://github.com/nassir90/adventofcode).

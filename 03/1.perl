@@ -1,12 +1,11 @@
 #!/usr/bin/env perl
-open $i, "<", "input";
-
+# sum numbers by symbols
 sub at {
     @d = split //, $d;
     @d[$_[0]+$_[1]*$w]
 }
 
-while (<$i>) {
+while (<>) {
     $l ++;
     $w = length($_) - 1;
     $d .= substr $_, 0, $w;

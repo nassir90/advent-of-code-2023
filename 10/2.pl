@@ -23,7 +23,7 @@ for my $line (<>) {
 }
 
 sub marked {
-    return $marked{"$_[0] $_[1]"} || ($_[0] < 0 || $_[0] > $#rows) || ($_[1] < 0 || $_[1] > $#columns);
+    return $marked{"$_[0] $_[1]"} or $_[0] < 0 || $_[0] > $#rows or $_[1] < 0 || $_[1] > $#columns;
 }
 
 push $edge{"@start"}->@*, [north @start] if (at north @start) =~ /[|7F]/;

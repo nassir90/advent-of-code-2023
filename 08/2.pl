@@ -62,4 +62,6 @@ advance: {
             redo advance;
         }
     }
+    $cap++:
+    last if $cap > 1000000;
 }

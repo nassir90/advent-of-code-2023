@@ -21,19 +21,20 @@ while (<>) {
     }
 }
 
-push $edge[$at[0]][$at[1]]->@*, [north @at] if (at north @at) =~ /[|7F]/;
+push $edge[$at[0]][$at[1]]->@*, [north @at] if (at north @at) =~ /[7|F]/;
 push $edge[$at[0]][$at[1]]->@*, [east @at]  if (at east  @at) =~ /[-7J]/;
-push $edge[$at[0]][$at[1]]->@*, [south @at] if (at south @at) =~ /[|JL]/;
-push $edge[$at[0]][$at[1]]->@*, [west @at]  if (at west  @at) =~ /[-FL]/;
+push $edge[$at[0]][$at[1]]->@*, [south @at] if (at south @at) =~ /[J|L]/;
+push $edge[$at[0]][$at[1]]->@*, [west @at]  if (at west  @at) =~ /[-LF]/;
 
 cycle: while (1) {
-    $marked[$at[0]][$at[1]] = 1;
-    $s++;
+    $marked[$at[0]][$at[1]] = ++$s;
     for $next ($edge[$at[0]][$at[1]]->@*) {
         @prev = @at, @at = @$next, last if !marked @$next;
         last cycle                      if "@$next" ne "@prev" && "S" eq at @$next;
     }
 }
+
+print "Answer #1: @{[$s/2]}\n\n";
 
 for my $row (0..$#rows) {
     for my $column (0..$rows[0]->$#*) {
@@ -50,8 +51,8 @@ for my $row (0..$#rows) {
 @oldrows = @rows;
 @rows = @hyper;
 
-print "Expanded map\n";
-for (@rows) { print for @$_; print "\n" }
+# print "Expanded map\n";
+# local $" = "", print "@$_\n" for (@rows);
 
 sub dfr {
     my $c = at @_;
@@ -70,16 +71,16 @@ sub dfr {
 dfr 0, 0;
 
 print "DFRed map\n";
-for (@rows) { print for @$_; print "\n" }
+local $" = "", print "@$_\n" for (@rows);
 
 print "Compressed map map\n";
 for my $row (0..$#oldrows) {
     for my $column (0..$oldrows[0]->$#*) {
         $c = $rows[$row*3+1][$column*3+1];
-        print $c;
+        print $c; 
         $m++ if $c =~ /I/;
     }
     print "\n";
 }
 
-print "\nAnswer: $m\n";
+print "\nAnswer #2: $m\n";

@@ -1,4 +1,5 @@
 #!/usr/bin/env perl
+# numbers by gears
 while (<>) {
     $l ++;
     $w = length($_) - 1;
