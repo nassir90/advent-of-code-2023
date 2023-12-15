@@ -1,0 +1,1 @@
+$e=1e7;while(<>){$h++,$w=-1+length$_;$r[$#r+1]=$.-1if!/#/;$c{@-}=push@g,[$.-1,@-]while/#/g}for$r(reverse@r){for(@g){@$_[0]+=$e-1if@$_[0]>$r}}for$c(0..$w){$c{$c=$w-$c}&&next;for(@g){@$_[1]+=$e-1if@$_[1]>$c}}for$g1(0..$#g-1){for$g2($g1+1..$#g){($r1,$c1)=@{$g[$g1]};($r2,$c2)=@{$g[$g2]};$s+=abs($r2-$r1)+abs$c2-$c1}}print"$s"
