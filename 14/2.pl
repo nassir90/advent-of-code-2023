@@ -3,11 +3,10 @@ my ($width, $height) = (length($lines[0]), scalar @lines);
 my $lines = join "", @lines;
 $lines[$_] =~ s/O/./g for @lines;
 $rocks{int($-[0] / $width), $-[0] % $width } = "O" while ($lines =~ /O/gm);
-push @blocks, [int($-[0] / $width), $-[0] % $width] while ($lines =~ /#/gm);
 
 my @north = (-1,  0);
-my @west = ( 0, -1);
-my @south  = ( 1,  0);
+my @west  = ( 0, -1);
+my @south = ( 1,  0);
 my @east  = ( 0,  1);
 
 sub at {
@@ -19,20 +18,15 @@ sub at {
 
 sub candrop {
   my ($row, $column, $dr, $dc) = @_;
-  unless (0 <= $row + $dr < $width and 0 <= $column + $dc < $height) {
+  if (not 0 <= $row + $dr < $width && 0 <= $column + $dc < $height) {
     # print "cannot drop into EOF";
-    return;
-  }
-  unless ("O" eq at $row,     $column) {
+  } elsif (not "O" eq at $row,     $column) {
     # print "cannot drop #/.\n"
-    return;
-  }
-  unless ("." eq at $row+$dr, $column+$dc) {
+  } elsif (not "." eq at $row+$dr, $column+$dc) {
     # print "cant drop into non dot?";
-    return;
+  } else {
+    return 1
   }
-  
-  return 1
 }
 
 sub drop {
@@ -75,12 +69,14 @@ sub engage {
   }
 }
 
-for (1..100) {
+my $cycles = 111;
+
+for (1..$cycles) {
   engage @north;
   engage @west;
   engage @south;
   engage @east;
-  print "HERE\n";
+  # print "HERE $_\n";
 }
 
 my $newlines = dumptruck;
