@@ -35,10 +35,10 @@ local $offset = "";
 sub gen {
   my ($block, $start) = @_;
   
-  #hongui $offset, "Starting with $block";
+  #print $offset, "Starting with $block";
   
   my $final = $block == $#blocks;
-  #hongui $offset, "Master final ($block == $#blocks)" if $final;
+  #print $offset, "Main final ($block == $#blocks)" if $final;
 
   my $allpositions = 0;
   
@@ -51,14 +51,14 @@ sub gen {
   my $suffixlength = length($suffix);
   
   if ($suffixlength < $blocksums[$block]) {
-    #hongui $offset, "Need '@blocks[$block..$#blocks]' but $suffixlength characters remaining in $suffix";
+    #print $offset, "Need '@blocks[$block..$#blocks]' but $suffixlength characters remaining in $suffix";
     return 0;
   }
 
   my $blocksremaining = @blocks - $block;
   my $minimumblocks = $absoluteblocks[$start];
   if ($blocksremaining < $minimumblocks) {
-    #hongui $offset, "With ($suffix), need at least $minimumblocks blocks but have $blocksremaining";
+    #print $offset, "With ($suffix), need at least $minimumblocks blocks but have $blocksremaining";
     return 0;
   }
 
@@ -74,7 +74,7 @@ sub gen {
   my $zero = 0;
   
   while ($cells <= length($suffix)) {
-    #hongui $offset, "Master cells $cells";
+    #print $offset, "Main cells $cells";
     
     my $nextblock = $block+1;
     my $nextfinal = $nextblock == $#blocks;
@@ -97,29 +97,29 @@ sub gen {
       $nextsuffixlength = length($nextsuffix);
 
       if ($nextsuffixlength < $blocksums[$nextblock]) {
-        #hongui $offset, "Need '@blocks[$nextblock..$#blocks]' but $nextsuffixlength characters remaining in '$nextsuffix'";
+        #print $offset, "Need '@blocks[$nextblock..$#blocks]' but $nextsuffixlength characters remaining in '$nextsuffix'";
         last;
       }
       
       if (!$nextfinal and length($original)-$nextstart-$nextblocksize-$nextrightspacing < $blocksums[$nextblock+1]) {
-        #hongui $offset, "Gonna do what's called a pro-gamer move and leave";
+        #print $offset, "Gonna do what's called a pro-gamer move and leave";
         last;
       }
       
       if ($beforenextsuffix =~ /([?.])([#?]{$nextblocksize})($|[?.])/) {
         if ($-[0] != 0) {
-          #hongui $offset, "Slave will NOT fit '$nextlit' in '$nextfull'";
+          #print $offset, "Secondary will NOT fit '$nextlit' in '$nextfull'";
           $cells += $-[0] - 1;
           next;
         }
-        #hongui $offset, "Slave will     fit '$nextlit' in '$nextfull'";
+        #print $offset, "Secondary will     fit '$nextlit' in '$nextfull'";
       } else {
-        #hongui $offset, "Slave will NOT fit '$nextlit' in '$nextfull'";
+        #print $offset, "Secondary will NOT fit '$nextlit' in '$nextfull'";
         next;
       }
     } else {
       $cells = length($suffix);
-      #hongui $offset, "Skipping to final cell ($cells)";
+      #print $offset, "Skipping to final cell ($cells)";
     }
 
     # cells is just the block of characters from $start to the next
@@ -137,15 +137,15 @@ sub gen {
       my $prefix = substr $suffix, 0, $usablecells - $cell;
       my $nextoffset = $cells - $cell;
       
-      # #hongui $offset,  "$nextoffset (USABLE CELLS $usablecells, CELL $cell, LIMIT $celllimit)";
+      # #print $offset,  "$nextoffset (USABLE CELLS $usablecells, CELL $cell, LIMIT $celllimit)";
       my $assumption = paint "red",    $original,   $nextstart,   $nextblocksize;
       $assumption    = paint "orange", $assumption, $start+$cell, $maximumqspace;
     
-      #hongui $offset, "Suffix: $assumption ($suffix)";
+      #print $offset, "Suffix: $assumption ($suffix)";
       
       if ($prefix =~ /^\.+/n) {
         
-        #hongui $offset, "Found dspace '$&'";
+        #print $offset, "Found dspace '$&'";
         $cell += length($&);
         
       } elsif ($prefix =~ /^(\?{$minimumqspace,})[^#]*(#)?/) {
@@ -154,36 +154,36 @@ sub gen {
         my $qspacelength = length($qspace);
         my $delta = 1 + $qspacelength - $blocksize;
         
-        #hongui $offset, "Can fit '$lit' $delta times in '$qspace' ($-[0])";
+        #print $offset, "Can fit '$lit' $delta times in '$qspace' ($-[0])";
         if ($2) {
-          #hongui $offset, "- Ignoring ?-space as adjacent # ($&)";
+          #print $offset, "- Ignoring ?-space as adjacent # ($&)";
         } else {
           $positions += $delta;
         }
         $cell += $delta;
       } elsif ($prefix =~ /^[#?]{$blocksize}[.?]*$/n) {
-        #hongui $offset, "Can fit '$lit' 1 time in '$suffix' (slow)";
+        #print $offset, "Can fit '$lit' 1 time in '$suffix' (slow)";
         $positions += 1;
         $cell += 1;
       } else {
         my $tried = $lit . ('.' x ($usablecells - $blocksize));
-        #hongui $offset, "No match for '$tried'";
+        #print $offset, "No match for '$tried'";
         $cell++;
       }
       if ($prefix =~ /^#/n) {
-        #hongui $offset, "Going to finish...";
+        #print $offset, "Going to finish...";
         $sawhashalready = 1;
         last;
       }
     }
     
-    # #hongui $offset, "Cell reached $cell (of $celllimit), done scan";
+    # #print $offset, "Cell reached $cell (of $celllimit), done scan";
 
     if ($positions == 0) {
       my $prefix = paint "orange", $suffix, 0, $cells;
-      #hongui $offset, "Cannot fit '$lit' in '$prefix' of '$suffix' ($sawhashalready))";
+      #print $offset, "Cannot fit '$lit' in '$prefix' of '$suffix' ($sawhashalready))";
       if ($sawhashalready) {
-        #hongui $offset, "Positions never increase if hash seen, leaving";
+        #print $offset, "Positions never increase if hash seen, leaving";
         last;
       } else {
         next
@@ -191,27 +191,27 @@ sub gen {
     }
     
     if ($final) {
-      #hongui $offset, "(NEW $positions!)";
+      #print $offset, "(NEW $positions!)";
       $allpositions += $positions;
     } else {
       if ($nextfinal) {
         if ($nextsuffix =~ /^([#?]{$nextblocksize})[?.]*$/) {
-          #hongui $offset, "- Slave final can fit '$nextlit' in '$nextsuffix' (NEW $positions)";
+          #print $offset, "- Secondary final can fit '$nextlit' in '$nextsuffix' (NEW $positions)";
           $allpositions += $positions;
-          #hongui $offset, "(NEW next final $positions)";
+          #print $offset, "(NEW next final $positions)";
         } else {
-          #hongui $offset, "- Slave final CANNOT fit '$nextlit' in '$nextsuffix'";
+          #print $offset, "- Secondary final CANNOT fit '$nextlit' in '$nextsuffix'";
         }
       } else {
         if ($sawhashalready) {
-          #hongui $offset, "Master limit reached. Liberating slave…";
+          #print $offset, "Main limit reached. Liberating secondary…";
           my $delta = 0;
           {
             local $offset = $offset . "    ";
             $delta = $positions * gen($nextblock, $nextstart);
           }
           $allpositions += $delta;
-          #hongui $offset, "(NEW from slave $delta)";
+          #print $offset, "(NEW from secondary $delta)";
           last;
         }
         
@@ -224,13 +224,13 @@ sub gen {
 
         return $allpositions if $nextnextstart >= length($original);
         
-        #hongui $offset, "Placing down slave ($nextfull)";
+        #print $offset, "Placing down secondary ($nextfull)";
         
         die "suffix length errror" if (length($nextnextsuffix) >= length($nextsuffix));
       
-        #honguif "${offset}My father had '%s'\n",                                  paint("yellow", $original, 0, $start);
-        #honguif "${offset}His son had   '%s' (post $blocksize)\n",                paint("yellow", $original, 0, $start+$cells);
-        #honguif "${offset}And I'll have '%s' (post $blocksize,$nextblocksize)\n", paint("yellow", $original, 0, $nextnextstart);
+        #printf "${offset}My father had '%s'\n",                                  paint("yellow", $original, 0, $start);
+        #printf "${offset}His son had   '%s' (post $blocksize)\n",                paint("yellow", $original, 0, $start+$cells);
+        #printf "${offset}And I'll have '%s' (post $blocksize,$nextblocksize)\n", paint("yellow", $original, 0, $nextnextstart);
         
         my $nextpositions;
         {
@@ -239,7 +239,7 @@ sub gen {
         }
         
         my $delta = $positions * $nextpositions;
-        #hongui $offset, "(NEW $positions * $nextpositions = $delta)";
+        #print $offset, "(NEW $positions * $nextpositions = $delta)";
         $allpositions += $delta;
         $zero = $delta == 0;
       }

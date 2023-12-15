@@ -36,7 +36,7 @@ sub gen {
   my ($block, $start) = @_;
   print $offset, "Starting with $block";
   my $final = $block == $#blocks;
-  print $offset, "Master final ($block == $#blocks)" if $final;
+  print $offset, "Main final ($block == $#blocks)" if $final;
 
   my $allpositions = 0;
   my $rightspacing = $final ? 0 : 1;
@@ -76,7 +76,7 @@ sub gen {
     # that in the !$final block, we make sure of this.
     my $usablecells = $cells - $rightspacing;
     
-    print $offset, "Master cells $cells";
+    print $offset, "Main cells $cells";
     
     my $nextblock = $block+1;
     my $nextfinal = $nextblock == $#blocks;
@@ -93,9 +93,9 @@ sub gen {
       $nextlit = ('#' x $nextblocksize) . ('.' x $nextrightspacing);
       $nextfull = paint "red", $original, $nextstart, $nextblocksize;
       if ($beforenextsuffix =~ /^([?.])([#?]{$nextblocksize})($|[?.])/) {
-        print $offset, "Slave will fit '$nextlit' in '$nextfull'";
+        print $offset, "Secondary will fit '$nextlit' in '$nextfull'";
       } else {
-        print $offset, "Slave will NOT fit '$nextlit' in '$nextfull'";
+        print $offset, "Secondary will NOT fit '$nextlit' in '$nextfull'";
         next;
       }
     }
@@ -115,7 +115,7 @@ sub gen {
     #    my $lebensaurum = $cells-$blocksize-$rightspacing-$prefixstart;
     #    if ($prefix =~ /^([#?]{$blocksize})([?.]{$lebensaurum})($|[?.])/) {
     #      $positions++;
-    #      print $offset, "Master can fit '$lit' in '$prefix' ($positions)";
+    #      print $offset, "Main can fit '$lit' in '$prefix' ($positions)";
     #    }
     #    if ($prefix =~ /^#/) {
     #      print $offset, "Finishing (Cannot leave extra '#')";
@@ -202,10 +202,10 @@ sub gen {
         print $offset, "Saw hash at ", paint("red", $original, $start+$cell-1);
         print $offset, "New hash at ", paint("red", $original, $wantnohash);
       } elsif ($absolute <= 1) {
-        print $offset, "Master final (hashes $absolute) $allpositions (NEW $positions)";
+        print $offset, "Main final (hashes $absolute) $allpositions (NEW $positions)";
         $allpositions += $positions;
       } else {
-        print $offset, "INVALID Master final (hashes $absolute) $allpositions (NEW $positions)";
+        print $offset, "INVALID Main final (hashes $absolute) $allpositions (NEW $positions)";
       }
     } else {
       my $nextblocksize = $blocks[$nextblock];
@@ -220,14 +220,14 @@ sub gen {
       }
       if ($nextfinal) {
         if ($nextsuffix =~ /^([#?]{$nextblocksize})[?.]*$/) {
-          print $offset, "- Slave final can fit '$nextlit' in '$nextsuffix' (NEW $positions)";
+          print $offset, "- Secondary final can fit '$nextlit' in '$nextsuffix' (NEW $positions)";
           $allpositions += $positions;
         } else {
-          print $offset, "- Slave final CANNOT fit '$nextlit' in '$nextsuffix'";
+          print $offset, "- Secondary final CANNOT fit '$nextlit' in '$nextsuffix'";
         }
       } else {
         if ($sawhashalready) {
-          print $offset, "Master limit reached. Liberating slave…";
+          print $offset, "Main limit reached. Liberating secondary…";
           local $offset = $offset . "    ";
           $allpositions += $positions * gen($nextblock, $nextstart);
           last;
@@ -236,10 +236,10 @@ sub gen {
         # print $offset, "Hmm nb is $nextblock";
         die "nextblocksize is undefined (block $block of $#blocks)" unless defined $nextblocksize;
         # if ($nextsuffix !~ /^([#?]{$nextblocksize})($|[?.])/) {
-        #   print $offset, "- Slave cannot fit '$nextlit' in '$nextsuffix'";
+        #   print $offset, "- Secondary cannot fit '$nextlit' in '$nextsuffix'";
         # } else {
-        # print $offset, "- Slave can fit '$nextlit' in '$nextsuffix'";
-        print $offset, "Placing down slave ($nextfull)";
+        # print $offset, "- Secondary can fit '$nextlit' in '$nextsuffix'";
+        print $offset, "Placing down secondary ($nextfull)";
       
         my $nextnextblock = $nextblock+1;
         my $nextnextblocksize = $blocks[$nextnextblock];
@@ -269,7 +269,7 @@ sub gen {
 
       # new position counting makes this redundant
       # if ($nextsuffix =~ /^#+/) {
-      #   print $offset, "Slave OUGHT to finish up '$nextlit' ($nextsuffix)";
+      #   print $offset, "Secondary OUGHT to finish up '$nextlit' ($nextsuffix)";
       #   # I think that if I just advance the cells (padding) to the
       #   # correct next valid block place we should be gucci
       #   my $advance = length($&);
