@@ -2,8 +2,36 @@ use std::io::stdin;
 use std::collections::{HashSet};
 use std::mem::{replace, swap};
 
-type Unit = i8;
+type Unit = i16;
+type Have = u8;
 type Point = (Unit, Unit);
+
+#[inline]
+fn index(shift: usize, row: Unit, column: Unit) -> usize {
+    ((row as usize) << shift) + column as usize
+}
+
+// engage function
+#[inline]
+fn engage(shift: usize, blocks: &[Point], front: &mut [Have], back: &mut [Have], (pdr, pdc): Point, magnet: &[Point]) {
+    let mut block = 0;
+    while block < blocks.len() {
+        let (blockrow, blockcolumn) = blocks[block];
+        let (mut rockrow, mut rockcolum) = (blockrow, blockcolumn);
+        // adding one here makes it twice as fast? dafuq?
+        let count = 1 + replace(&mut front[index(shift, blockrow, blockcolumn)], 0);
+        let mut d = 1;
+        while d < count as Unit {
+            rockrow -= pdr;
+            rockcolum -= pdc;
+            // println!("Rock is {rock:?} and block is {block:?} and dir is ({pdr}, {pdc}) ({count})");
+            let (blockrow, blockcolumn) = magnet[index(shift, rockrow, rockcolum)];
+            back[index(shift, blockrow, blockcolumn)] += 1;
+            d += 1;
+        }
+        block += 1;
+    }
+}
 
 fn main() {
     // user control of the program
@@ -24,7 +52,9 @@ fn main() {
         .flatten()
         .collect();
     for line in lines.iter_mut() { *line = format!("#{line}#") }
+    
     let width  = lines[0].len() as Unit;
+    
     lines.insert(0, "#".to_string().repeat(width as usize));
     lines.push("#".to_string().repeat(width as usize));
     let height = lines.len() as Unit;
@@ -33,11 +63,12 @@ fn main() {
     let mut blocks = HashSet::new();
     let mut blocks_as_vec = Vec::new();
 
-    let (mut a, mut b) = (vec![0; width as usize * height as usize as usize], vec![0; width as usize * height as usize]);
+    let shift = 1 + width.ilog2() as usize;
+    let width_lut = 1 << shift;
+    let mut a = vec![0 as Have; width_lut * height as usize];
+    let mut b = a.clone();
     let (mut front, mut back) = (&mut a[..], &mut b[..]);
-
-    let index = |row: Unit, column: Unit| row as usize * width as usize + column as usize as usize;
-
+    
     let north : (Unit, Unit) = (-1,  0);
     let south : (Unit, Unit) = ( 1,  0);
     let east  : (Unit, Unit) = ( 0,  1);
@@ -56,11 +87,11 @@ fn main() {
     
     // magnet LUT construction
     let magnetise = |(dr, dc): Point| {
-        let mut magnet = vec![(-1, -1); width as usize * height as usize];
+        let mut magnet = vec![(0, 0); width_lut as usize * height as usize];
         for &(blockrow, blockcolumn) in &blocks_as_vec {
             let (mut row, mut column) = (blockrow - dr, blockcolumn - dc);
             while 0 <= row && row < height && 0 <= column && column < width && !blocks.contains(&(row, column)) {
-                magnet[index(row, column)] = (blockrow, blockcolumn);
+                magnet[index(shift, row, column)] = (blockrow, blockcolumn);
                 row -= dr;
                 column -= dc;
             }
@@ -74,15 +105,15 @@ fn main() {
     println!("Constructed block LUT");
     
     // formatting code here
-    let print = |front: &[Unit], magnet: &[Point]| {
+    let print = |front: &[Have], magnet: &[Point]| {
         for row in 0..height {
             for column in 0..width {
                 if blocks.contains(&(row, column)) {
                     print!("#");
                 } else {
-                    let (blockrow, blockcolumn) = magnet[index(row, column)];
+                    let (blockrow, blockcolumn) = magnet[index(shift, row, column)];
                     let distance = (blockrow - row) + (blockcolumn - column);
-                    if distance.abs() <= front[index(blockrow, blockcolumn)] {
+                    if distance.abs() as Have <= front[index(shift, blockrow, blockcolumn)] {
                         print!("O");
                     } else {
                         print!(".");
@@ -92,63 +123,49 @@ fn main() {
             println!();
         }
     };
-
-    // engage function
-    let engage = |front: &mut [Unit], back: &mut [Unit], (pdr, pdc): Point, magnet: &[Point]| {
-        for block in 0..blocks_as_vec.len() {
-            let (blockrow, blockcolumn) = blocks_as_vec[block];
-            for d in 1..1+replace(&mut front[index(blockrow, blockcolumn)], 0) {
-                let (rockrow, rockcolum) = (blockrow - pdr * d, blockcolumn - pdc * d);
-                // println!("Rock is {rock:?} and block is {block:?} and dir is ({pdr}, {pdc}) ({count})");
-                let (blockrow, blockcolumn) = magnet[index(rockrow, rockcolum)];
-                back[index(blockrow, blockcolumn)] += 1;
-            }
-        }
-    };
     
     // score function
-    let score = |front: &[Unit], (dr, _): Point| blocks_as_vec.iter()
-        .fold(0, |mut score, &(blockrow, blockcolumn)| {
-            let count = front[index(blockrow, blockcolumn)];
-            for d in 1..count+1 {
+    let score = |front: &[Have], (dr, _): Point| blocks_as_vec.iter()
+        .fold(0 as usize, |mut score, &(blockrow, blockcolumn)| {
+            let count = front[index(shift, blockrow, blockcolumn)];
+            for d in 1..1+count as Unit {
                 let rockrow = blockrow - dr * d;
-                score += (height - 2) - (rockrow - 1);
+                score += ((height - 2) - (rockrow - 1)) as usize;
             }
             score
         });
 
     // bootstrap cycle
     for (rockrow, rockcolum) in rocks {
-        let (blockrow, blockcolumn) = north_magnet[index(rockrow, rockcolum)];
-        back[index(blockrow, blockcolumn)] += 1;
+        let (blockrow, blockcolumn) = north_magnet[index(shift, rockrow, rockcolum)];
+        back[index(shift, blockrow, blockcolumn)] += 1;
     }
     swap(&mut front, &mut back);
-    engage(front, back, north, &west_magnet);
+    engage(shift, &blocks_as_vec, front, back, north, &west_magnet);
     swap(&mut front, &mut back);
-    engage(front, back, west, &south_magnet);
+    engage(shift, &blocks_as_vec, front, back, west, &south_magnet);
     swap(&mut front, &mut back);
-    engage(front, back, south, &east_magnet);
+    engage(shift, &blocks_as_vec, front, back, south, &east_magnet);
     swap(&mut front, &mut back);
 
     println!("Completed first move north");
     
     // cycle loop
     for i in 2..cycles+1 {
-        engage(front, back, east, &north_magnet);
+        engage(shift, &blocks_as_vec, front, back, east, &north_magnet);
         swap(&mut front, &mut back);
-        engage(front, back, north, &west_magnet);
+        engage(shift, &blocks_as_vec, front, back, north, &west_magnet);
         swap(&mut front, &mut back);
-        engage(front, back, west, &south_magnet);
+        engage(shift, &blocks_as_vec, front, back, west, &south_magnet);
         swap(&mut front, &mut back);
-        engage(front, back, south, &east_magnet);
+        engage(shift, &blocks_as_vec, front, back, south, &east_magnet);
         swap(&mut front, &mut back);
         if i % interval == 0 {
-            println!("Score is: {} at {i}", score(&front, east));
+            println!("Have is: {} at {i}", score(&front, east));
             if should_print { print(&front, &east_magnet) };
         }
     }
 
     println!("Score is: {} at {cycles}", score(&front, east));
     if should_print { print(&front, &east_magnet) };
-
 }
