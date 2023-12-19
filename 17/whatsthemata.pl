@@ -1,9 +1,15 @@
+# what did I learn from this? trying to enumerate all paths will make
+# you run out of memory! who knew! My next experiment will use a tree
+# representation and only update relevant tails of the tree.
+
 use Data::Dumper;
 local $Data::Dumper::Purity = 1;
 local $Data::Dumper::Deepcopy = 1;
 
 sub paint {
-  my %colors = (red => [255,000,000], orange => [125, 50, 50], yellow => [150, 150, 0 ]);
+  my %colors = (red => [255,000,000],
+                orange => [125, 50, 50],
+                yellow => [150, 150, 0 ]);
   my ($color, $string, $start, $size) = @_;
   return $string unless $start < length($string);
   $size = $size // 1;
@@ -41,7 +47,6 @@ sub collapse {
   my ($row, $column, @direction) = @_;
   my @candidates;
   my %delete;
-  
   for (0..$#paths) {
     my ($otherstretch, $otherdistance, @otherdirection) = @{$paths[$_]{$row, $column}};
     if ($paths[$_]{$row, $column} and "@direction" eq "@otherdirection") {
@@ -187,8 +192,3 @@ printf "Paths created are: %d\n", scalar @paths;
 $DB::single = 2;
 
 $x ++;
-
-# to a certain point, there can be an optimal path. that is the one
-# where stretch and didstance are minimised. However, stretch cant be
-# minimised globally, only with resepct to the direction the path is
-# going in.
