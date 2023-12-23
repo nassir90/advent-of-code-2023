@@ -26,7 +26,7 @@ sub free {
 sub printaround {
   my ($row, $column) = @_;
   my @lines;
-  for my $dr (0..$context)  {
+  for my $dr (0..$context) {
     for my $dc (0..$context) {
       $lines[$dr] .= at($row + $dr - $context/2, $column + $dc - $context/2);
     }
@@ -69,9 +69,6 @@ sub bfs {
   exists $args{distance} and %{$args{distance}} = %distance;
   $reachable
 }
-
-
-
 
 my ($topleftcornerrow, $topleftcornercolumn) = ($originrow - $height/2 - 1, $origincolumn - $width/2);
 my ($toprightcornerrow, $toprightcornercolumn) = ($originrow - $height/2 - 1, $origincolumn + $width/2);
@@ -123,6 +120,9 @@ print "BR: $bottomrightcornerdistance\n";
   my ($cornerrow, $cornercolumn) = ($originrow - $height/2 - $height - 1, $origincolumn + $width/2);
   bfs $cornerrow, $cornercolumn, %row, %bar, marked => \%anciliary;
   my $anciliary = scalar keys %anciliary;
+
+  my %NIG = (%row, %bar);
+  print Dumper \%NIG;
   
   local $max = $maxx - $topleftcornerdistance;
   my ($cornerrow, $cornercolumn) = ($originrow - $height/2 - 1, $origincolumn - $width/2);
@@ -228,7 +228,7 @@ print "\nQUADRANT\n\n";
       maximumrow => $cornerrow,
       maximumcolumn => $cornercolumn,
       marked => \%last;
-    # printf "c: $c\n";
+    printf "c: $c\n";
   }
   my $zener = scalar keys %last;
   printf "Zener: %d\n", $zener;
