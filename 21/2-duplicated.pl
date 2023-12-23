@@ -11,15 +11,15 @@ my @lines = map { chomp; $_ } <>;
 my $height = @lines;
 my $width = length($lines[0]);
 die "height ($height) != width ($width)" if $height != $width;
-my ($originrow, $origincolumn) = ($height/2, $width/2);
+my @origin = ($originrow, $origincolumn) = ($height/2, $width/2);
 # my $maxx = 801;
 # my $maxx = 400;
-# my $maxx = 26501365;
-my $maxx = 500;
+my $maxx = 26501365;
+# my $maxx = 1000;
 # my $maxx = 500; # (answer is 213881, input)
 # my $maxx = 501;   # (answer is 214690, input)
 # my $maxx = 1000;  # (answer is 853901, input)
-# my $maxx = 200; # (answer 34610, milky)
+# my $maxx = 200; # (answer 34610, bainne)
 # my $maxx = 1000;
 
 my $minitest = 1;
@@ -97,7 +97,7 @@ sub bfs {
   return $reachable;
 }
 
-sub realnigga {
+sub bfscalculate {
   my ($marked) = @_;
   my @lines;
   my $amount = 250;
@@ -112,27 +112,27 @@ sub realnigga {
     }
   }
   # print "$_\n" for (@lines);
-  printf "Real Nigga Answer: %d\n", scalar keys %$marked;
+  printf "Real Answer: %d\n", scalar keys %$marked;
 }
 
-{
-  bfs $originrow, $origincolumn,
-    extend => 20,
-    marked => \my %marked;
-  realnigga \%marked;
-  $minitest = 0;
-}
+# {
+#   bfs $originrow, $origincolumn,
+#     extend => 20,
+#     marked => \my %marked;
+#   bfscalculate \%marked;
+#   $minitest = 0;
+# }
 
 bfs $originrow, $origincolumn,
   minimumrow    => 0, maximumrow    => $height-1,
   minimumcolumn => 0, maximumcolumn => $width-1,
   distance => \my %distance,
   marked => \my %marked;
-printf "absolute combine (center): %d\n", scalar keys %marked;
+printf "assumed + calculated (center): %d\n", scalar keys %marked;
 my $ss = keys %marked;
 # my %ss = %marked;
 
-sub michael {
+sub plot {
   my ($row, $column) = @_;
   print "PLOT FROM ($row, $column)\n";
   my @m = printaround $row, $column;
@@ -141,13 +141,18 @@ sub michael {
 }
 
 for ([-1,0], [1,0], [0,1], [0,-1]) {
+# for ([-1,0]) {
 # for ([0,-1]) {
-# for ([0,-1]) {
+# for (()) {
   print "\nBAR (@$_)\n\n";
   my ($dr, $dc) = @$_;
-  my ($primaryrow, $primarycolumn) = ($originrow    + $dr * ($height/2 + 1) + $dc * ($height/2),
-                                      $origincolumn + $dr * ($height/2) + $dc * ($height/2 + 1));
-  my ($secondaryrow, $secondarycolumn) = ($primaryrow - $dc * ($height-1), $primarycolumn - $dr * ($width-1));
+  my @primary = ($primaryrow, $primarycolumn) = ($originrow    + $dr * ($height/2 + 1) + $dc * ($height/2),
+                                                 $origincolumn + $dr * ($height/2) + $dc * ($height/2 + 1));
+  my @secondary = ($secondaryrow, $secondarycolumn) = ($primaryrow - $dc * ($height-1), $primarycolumn - $dr * ($width-1));
+  my @tertiary = ($tertiaryrow, $tertiarycolumn) = ($primaryrow - $dc * ($height/2), $primarycolumn - $dr * ($width/2));
+
+  plot @tertiary;
+  
   my ($sdr, $sdc) = (-$dc, -$dr);
   my (%bara, %anciliarybounds, %immediatebounds, %verificationbounds);
   if ($dr) {
@@ -160,7 +165,7 @@ for ([-1,0], [1,0], [0,1], [0,-1]) {
       sort { $a <=> $b } $primaryrow, $dr * $inf;
   } elsif ($dc) {
     ($bara{minimumrow}, $bara{maximumrow}) = (0,  $height - 1);
-    # michael $bara{minimumrow}, $primarycolumn;
+    # plot $bara{minimumrow}, $primarycolumn;
     ($anciliarybounds{minimumcolumn}, $anciliarybounds{maximumcolumn}) =
       sort { $a <=> $b } $primarycolumn, $primarycolumn + $dc * $width - $dc;
     ($immediatebounds{minimumcolumn}, $immediatebounds{maximumcolumn}) =
@@ -169,19 +174,16 @@ for ([-1,0], [1,0], [0,1], [0,-1]) {
       sort { $a <=> $b } $primarycolumn, $dc * $inf;
   }
 
-  {
-    bfs $originrow, $origincolumn,
-      %verificationbounds,
-      %bara,
-      extend => 20,
-      marked => \my %marked;
-    realnigga \%marked;
-  }
-
-  my @primary = ($primaryrow, $primarycolumn);
-  my @secondary = ($secondaryrow, $secondarycolumn);
+  # {
+  #   bfs $originrow, $origincolumn, %verificationbounds, %bara,
+  #     extend => 20,
+  #     marked => \my %marked;
+  #   bfscalculate \%marked;
+  # }
+  
   my @anciliaryprimary = ($primaryrow + $dr * $height, $primarycolumn + $dc * $width);
   my @anciliarysecondary = ($secondaryrow + $dr * $height, $secondarycolumn + $dc * $width);
+  my @anciliarytertiary = ($tertiary + $dr * $height, $tertiary + $dc * $width);
 
   # print Dumper "ancilliary", \%anciliarybounds;
   # print Dumper "immediate", \%immediatebounds;
@@ -191,6 +193,7 @@ for ([-1,0], [1,0], [0,1], [0,-1]) {
 
   my $primarydistance   = $distance{$primaryrow, $primarycolumn};
   my $secondarydistance = $distance{$secondaryrow, $secondarycolumn};
+  my $tertiarydistance  = $distance{$tertiaryrow, $tertiarycolumn};
   
   print "primary distance (bar @$_): $primarydistance\n";
   print "secondary distance (bar @$_): $secondarydistance\n";
@@ -203,6 +206,8 @@ for ([-1,0], [1,0], [0,1], [0,-1]) {
     bfs @anciliaryprimary, %bara, %immediatebounds, marked => \%anciliary;
     local $max = $maxx - $secondarydistance - $height;
     bfs @anciliarysecondary, %bara, %immediatebounds, marked => \%anciliary;
+    local $max = $maxx - $tertiarydistance - $height;
+    bfs @anciliarytertiary, %bara, %immediatebounds, marked => \%anciliary;
     my $anciliary = scalar keys %anciliary;
 
     my %immediate;
@@ -210,6 +215,8 @@ for ([-1,0], [1,0], [0,1], [0,-1]) {
     bfs @primary, %bara, %anciliarybounds, marked => \%immediate;
     local $max = $maxx - $secondarydistance;
     bfs @secondary, %bara, %anciliarybounds, marked => \%immediate;
+    local $max = $maxx - $tertiarydistance;
+    bfs @tertiary, %bara, %anciliarybounds, marked => \%immediate;
     my $immediate = scalar keys %immediate;
     print "anciliary (bar @$_): $anciliary, immediate (bar @$_): $immediate\n";
   
@@ -240,51 +247,56 @@ for ([-1,0], [1,0], [0,1], [0,-1]) {
     my ($cornerrow, $cornercolumn) = ($primaryrow + $dr * $height*$blocks, $primarycolumn + $dc * $width*$blocks);
     local $max = $maxx - $primarydistance - $height * $blocks;
     bfs $cornerrow, $cornercolumn, %row, %bara, marked => \%combine;
+    
     my ($cornerrow, $cornercolumn) = ($secondaryrow + $dr * $height*$blocks, $secondarycolumn + $dc * $width*$blocks);
     local $max = $maxx - $secondarydistance - $height * $blocks;
     bfs $cornerrow, $cornercolumn, %row, %bara, marked => \%combine;
 
+    my ($cornerrow, $cornercolumn) = ($tertiaryrow + $dr * $height*$blocks, $tertiarycolumn + $dc * $width*$blocks);
+    local $max = $maxx - $tertiarydistance - $height * $blocks;
+    bfs $cornerrow, $cornercolumn, %row, %bara, marked => \%combine;
+
     printf "combine (@$_): %d\n", scalar keys %combine;
-    printf "absolute combine (bar @$_): %d\n", $sum + keys %combine;
+    printf "assumed + calculated (bar @$_): %d\n", $sum + keys %combine;
     $ss += $sum + keys %combine;
 
     %ss = (%ss, %immediate, %anciliary, %combine);
   
     # verification BFS
-    if ($minitest and $maxx < 1000) {
-      my %last;
-      # michael @primary;
-      local $max = $maxx - $primarydistance;
-      bfs @primary, %verificationbounds, %bara, marked => \%last;
-      local $max = $maxx - $secondarydistance;
-      bfs @secondary, %verificationbounds, %bara, marked => \%last;
-      printf "zoomer (bar @$_): %d\n", scalar keys %last;
+    if ($minitest and $maxx < 2000) {
+      local $max = $maxx;
+      bfs @origin, %verificationbounds, %bara,
+        extend => $height*2,
+        marked => \my %last;
+      printf "bfs ground truth (bar @$_): %d\n", scalar keys %last;
     } else {
-      print "zoomer (bar @$_): <input size too big>\n";
+      print "bfs ground truth (bar @$_): <input size too big>\n";
     }
   }
 }
 
-# realnigga \%ss;
+# bfscalculate \%ss;
 # exit;
 
 my %ss_r;
 
-# for $rot (0, 1, 2, 3) {
-for $rot (0,1,2,3) {
+for $rot (0, 1, 2, 3) {
+# for $rot (0,1,2,3) {
+# for $rot (0) {
+# for $rot (()) {
   # {
   #   bfs $originrow, $origincolumn,
   #     maximumrow => -1,
   #     maximumcolumn => -1,
   #     extend => 20,
   #     marked => \my %marked;
-  #   realnigga \%marked;
+  #   bfscalculate \%marked;
   # }
   
   print "\nQUADRANT ($rot)\n\n";
   my @source = ($originrow - $height/2 - 1, $origincolumn - $width/2 - 1);
   my @real = real @source;
-  # michael @source;
+  # plot @source;
   
   my $topleftcornerdistance = $distance{$real[0], $real[1]};
 
@@ -335,32 +347,31 @@ for $rot (0,1,2,3) {
   print "Sum: $sum\n";
 
   my %last;
-  my ($d, $n, $m);
+  my ($free, $occluded);
   for my $block (0..$blocks) {
     my ($dr, $dc) = ($block, $blocks - $block);
     local $max = $maxx - $topleftcornerdistance - $dr * $height - $dc * $width;
     my ($cornerrow, $cornercolumn) = ($source[0] - $dr * $height, $source[1] - $dc * $width);
+    my $marked = %last;
     my $c = bfs $cornerrow, $cornercolumn,
       minimumrow => -$inf,
       minimumcolumn => -$inf,
       maximumrow => $cornerrow,
       maximumcolumn => $cornercolumn,
       marked => \%last;
-    my $delta = keys(%last) - $m;
+    my $delta = %last - $marked;
     # printf "\tdelta: %d\n", $delta;
     $m = keys %last;
-    $n = $delta;
-    last if defined $d;
-    $d = $delta unless defined $d;
-    die if defined $d && $delta != $n;
+    $occluded = $delta;
+    last if defined $free;
+    $free = $delta unless defined $free;
+    die if defined $free && $delta != $occluded;
   }
-  # my $zener = scalar keys %last;
-  # my $zener = ($blocks + 1) * $d;
-  my $zener = $d + $blocks * $n;
-  print "d: $d, n: $n\n";
-  printf "bfs calculated: %d\n", $zener;
-  printf "absolute combine (quadrant $rot): %d\n", $zener + $sum;
-  $ss += $zener + $sum;
+  my $calculated = $free + $blocks * $occluded;
+  print "free: $d, occluded: $n\n";
+  printf "bfs calculated: %d\n", $calculated:;
+  printf "assumed + calculated (quadrant $rot): %d\n", $calculated + $sum;
+  $ss += $calculated + $sum;
 
   %ss_r = (%immediate, %anciliary, %last);
  
@@ -370,20 +381,21 @@ for $rot (0,1,2,3) {
   }
 
   if ($minitest and $maxx < 1000) {
-    local $max = $maxx - $topleftcornerdistance;
+    local $max = $maxx;
     my ($cornerrow, $cornercolumn) = ($source[0], $source[1]);
-    bfs $cornerrow, $cornercolumn,
+    bfs @origin,
       minimumrow => -$inf,
       minimumcolumn => -$inf,
       maximumrow => $cornerrow,
       maximumcolumn => $cornercolumn,
+      extend => $height * 2,
       marked => \my %last;
-    printf "zoomer (quadrant $rot): %d\n", scalar keys %last;
+    printf "bfs ground truth (quadrant $rot): %d\n", scalar keys %last;
   } else {
-    print "zoomer (quadrant $rot): <input size too big>\n";
+    print "bfs ground truth (quadrant $rot): <input size too big>\n";
   }
 }
 
-# realnigga \%ss;
+# bfscalculate \%ss;
 
 print "Answer: $ss\n";
