@@ -13,17 +13,7 @@ while (my ($direction, $delta, undef, $color, undef) = split /[ ()]/, <>) {
   }
   my $endrow    = $row    + $dr * $delta;
   my $endcolumn = $column + $dc * $delta;
-  
   if ($dr) {
-    # The horizontals around a vertical are described by
-    # $horizontals[$vertical{last}] and
-    # $horizontals[($vertical{last}+1) % @horizontals]
-    # At any vertical setpoint, you check its horizontals.
-    # - If there are none, upper ^= 1, lower ^= 1.
-    # - If vertical lower = horizontal right XOR upper
-    # - If vertical upper = horizontal right XOR lower
-    # - Otherwise if the current X intersects with the current HRANGE,
-    # XOR both.
     my ($start, $end) = sort { $a <=> $b } $row, $endrow;
     push @verticals, {column => $column, start => $start, end => $end, last => $#horizontals};
   } elsif ($dc) {
