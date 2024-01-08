@@ -14,7 +14,7 @@ die "height ($height) != width ($width)" if $height != $width;
 my @origin = ($originrow, $origincolumn) = ($height/2, $width/2);
 # my $maxx = 801;
 # my $maxx = 400;
-my $maxx = 26501365;
+my $maxx = 26501365; # (answer is 598044246091826, input ⭐)
 # my $maxx = 1000;
 # my $maxx = 500; # (answer is 213881, input)
 # my $maxx = 501;   # (answer is 214690, input)
@@ -368,8 +368,8 @@ for $rot (0, 1, 2, 3) {
     die if defined $free && $delta != $occluded;
   }
   my $calculated = $free + $blocks * $occluded;
-  print "free: $d, occluded: $n\n";
-  printf "bfs calculated: %d\n", $calculated:;
+  print "free: $free, occluded: $occluded\n";
+  printf "bfs calculated: %d\n", $calculated;
   printf "assumed + calculated (quadrant $rot): %d\n", $calculated + $sum;
   $ss += $calculated + $sum;
 

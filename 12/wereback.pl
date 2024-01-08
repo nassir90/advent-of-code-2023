@@ -1,14 +1,21 @@
 #!/usr/bin/perl -F'\s' -nl
-%colors = (red => [255,000,000], orange => [125, 50, 50], yellow => [150, 150, 0 ]);
+BEGIN {
+  $reps = $ENV{REPS} // 5;
 
-sub paint {
-  my ($color, $string, $start, $size) = @_;
-  $size = $size // 1;
-  local $" = ";", $color = "@{$colors{$color}}";
-  return $string =~ s/(?<=.{$start})(.{$size})/\e[48;2;${color}m$&\e[m/r;
+  %colors = (red => [255,000,000],
+             orange => [125, 50, 50],
+             yellow => [150, 150, 0 ]);
+
+  sub paint {
+    my ($color, $string, $start, $size) = @_;
+    return $string unless $start < length($string);
+    $size = $size // 1;
+    local $" = ";", $color = "@{$colors{$color}}";
+    substr $string, $start, $size, "\e[48;2;${color}m" . substr($string, $start, $size) . "\e[m";
+    return $string;
+  }
 }
 
-$reps = 5;
 $patternstring = $F[0]; $patternstring .= "?$F[0]" for (1..$reps-1);
 $blockstring = $F[1]; $blockstring .= ",$F[1]" for (1..$reps-1);
 @blocks = split /,/, $blockstring;
@@ -34,7 +41,7 @@ sub gen {
         $sum += 1;
       }
     } else {
-      # recursive case doesnt care abotu the trailer really
+      # recursive case doesnt care about the trailer really
       if ($patternstring =~ /^.{$suffix}[?.]{$expect}([?#]{$blocksize})(?:$|[?.])/n) {
         printf "${offset}Recursive found '%s' for ($block) '%s' \n", paint("orange", $patternstring, $start, $blocksize), $suffixes[$start-$expect];
 
@@ -62,4 +69,6 @@ $ss += $g;
 
 print "$F[0] $F[1] (x$reps) → $g";
 
-END { print $ss }
+END {
+  print $ss
+}

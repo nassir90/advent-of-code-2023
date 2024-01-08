@@ -1,5 +1,5 @@
 use Data::Dumper;
-# local $Data::Dumper::Purity = 1;
+
 local $Data::Dumper::Deepcopy = 1;
 
 our $minimumblocksbeforeturn = 4;
@@ -201,8 +201,6 @@ branch: while (1) {
       
   cull $cull while (my $cull = shift @cull);
 
-  #print "Culled $m\n";
-
   for (values %tails) {
     $m++, next branch if (@$_ != 0);
   }
@@ -221,8 +219,6 @@ for (sort { $$b{distance} <=> $$a{distance} }
   print "\nDistance: $path[$#path]{distance}\n";
   realtruck @marks;
 }
-
-# realtruck map { [orange, $$_{row}, $$_{column}] } path \%child;
 
 print "Done bro\n";
 
