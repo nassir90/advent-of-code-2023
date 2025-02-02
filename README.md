@@ -14,3 +14,7 @@ perl X.pl < INPUT
 Everything has been tested on perl 5.38.
 
 2021 solutions can be found [here](https://github.com/nassir90/adventofcode).
+
+## Advent of Code 2024
+
+My plan is to do AoC 2024 in python, common lisp and emacs lisp to get a good combination of boring and monotonous but relevant langauges and languages that are more interesting and fun but realistically a dead end. I might use another language on top for visualisations.
