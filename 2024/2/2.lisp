@@ -4,7 +4,6 @@
 (ql:quickload "uiop")
 
 (defvar input "/home/naza/projects/aoc/2024/2/input")
-(setf input "/home/naza/projects/aoc/2024/2/example")
 
 (defun main ()
   (loop for line in (uiop:read-file-lines input)
