@@ -3,7 +3,6 @@
 (ql:quickload "cl-ppcre")
 
 (defvar file "input")
-(defvar line-length nil)
 (defun read-input () (uiop:read-file-lines file))
 
 (defgeneric traverser-advance (r)
@@ -38,20 +37,23 @@
                 (traverser-advance d))))))))
 
 (defun at-new-row (d)
+  "After collecting a coordinate from the diagonal traverser, check this to see if you just reached
+the end of a diagonal strip. If so you should store the collected coordinates and create a new list
+for a new strip"
   (= (slot-value d 'stage) (stage-limit-from-location d)))
 
 (defun diagonal-transform (input)
   (loop
     with d = (make-instance 'diagonal-traverser :rows (length input) :columns (length input))
-    with a
-    with l
+    with strips
+    with diagonal-strip
     for (row column) = (traverser-advance d)
     while (and row column)
-    do (push (elt (elt input row) column) l)
+    do (push (elt (elt input row) column) diagonal-strip)
        (when (at-new-row d)
-         (push (reverse l) a)
-         (setf l ()))
-    finally (return (reverse a))))
+         (push diagonal-strip strips)
+         (setf diagonal-strip ()))
+    finally (return strips)))
 
 (defun null-transform (input)
   (let ((line-length (length input)))
@@ -64,6 +66,14 @@
     (loop for i from 0 below line-length
           collect (loop for j from (1- line-length) downto 0
                         collect (elt (elt input j) i)))))
+
+(defun clockwise-diagonal-transform (input)
+  (diagonal-transform (clockwise-transform input)))
+
+(defun index-transform (input)
+  (loop for row below (length input)
+        collect (loop for column below (length input)
+                      collect (list row column))))
 
 (defun dump-grid (list)
   (loop for line in list
@@ -90,45 +100,32 @@ This returns the row and column that the A was found at"
              (push (elt indices-line (1+ start)) centerpoints))
         finally (return centerpoints)))
 
-(defun angle-class-compute-intersections (input transform h)
-  (let* ((indices (index-transform input))
-         (points (append (collect-mas-centerpoints (funcall transform input)
-                                                   (funcall transform indices))
-                         (collect-mas-centerpoints (funcall transform (clockwise-transform input))
-                                                   (funcall transform (clockwise-transform indices))))))
-    (flet ((key (index) (intern (format nil "~A" index))))
-        (loop for elt in points
-              do (if (gethash (key elt) h)
-                     (incf (gethash (key elt) h))
-                     (setf (gethash (key elt) h) 1))))))
-
-(defun clockwise-diagonal-transform (input)
-  (diagonal-transform (clockwise-transform input)))
-
-(defun index-transform (input)
-  (loop for row below (length input)
-        collect (loop for column below (length input)
-                      collect (list row column))))
+(defun compute-mas-intersections (input transform h)
+  "Look at all points crossed by diagonals going one way and look at points crossed by diagonals
+going the other way and store frequencies in a hash table. Naturally when a hash table value is
+greater than 2, it means that there's an intersection there"
+  (let ((indices (index-transform input)))
+    (loop for elt in (append (collect-mas-centerpoints (diagonal-transform input)
+                                                       (diagonal-transform indices))
+                             (collect-mas-centerpoints (clockwise-diagonal-transform input)
+                                                       (clockwise-diagonal-transform indices)))
+          do (let ((key (intern (format nil "~A" elt))))
+               (if (gethash key h)
+                   (incf (gethash key h))
+                   (setf (gethash key h) 1))))))
 
 (defun main-part-2 ()
-  (flet ((do-count (&rest args)
-           (let ((h (make-hash-table))
-                 (c 0))
-             (apply 'angle-class-compute-intersections (append args (list h)))
-             (maphash (lambda (k v)
-                        (when (= v 2)
-                          (incf c)))
-                      h)
-             c)))
-    (do-count (read-input) #'diagonal-transform)))
+  (let ((h (make-hash-table)))
+    (compute-mas-intersections (read-input) #'diagonal-transform h)
+    (loop for v being the hash-values in h count (= v 2))))
 
 (main-part-2)
 
 ;; 1870 is too high
+;; 1850 is just right
 
 (defun main-part-1 ()
   (let* ((input (read-input))
-         (line-length (length (car input)))
          (null (count-xmas-matches (null-transform input)))
          (clockwise (count-xmas-matches (clockwise-transform input)))
          (diagonal (count-xmas-matches (diagonal-transform input)))
