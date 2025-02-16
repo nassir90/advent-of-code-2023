@@ -42,13 +42,13 @@
 
 (defun diagonal-transform (input)
   (loop
-    with f = (make-instance 'diagonal-traverser :rows (length input) :columns (length input))
+    with d = (make-instance 'diagonal-traverser :rows (length input) :columns (length input))
     with a
     with l
-    for (row column) = (traverser-advance f)
+    for (row column) = (traverser-advance d)
     while (and row column)
     do (push (elt (elt input row) column) l)
-       (when (at-new-row f)
+       (when (at-new-row d)
          (push (reverse l) a)
          (setf l ()))
     finally (return (reverse a))))
@@ -78,29 +78,29 @@
         sum (+ (cl-ppcre:count-matches "XMAS" (char-array-to-string line))
                (cl-ppcre:count-matches "SAMX" (char-array-to-string line)))))
 
-(defun collect-mas-centerpoints (grid corresponding-coordinates)
+(defun collect-mas-centerpoints (grid indices)
   "Iterate over the rows of the grid and try to find the string MAS.
 This returns the row and column that the A was found at"
-  (loop with coordinates
+  (loop with centerpoints
         for line in grid
-        for corresponding-coordinates-line in corresponding-coordinates
+        for indices-line in indices
         do (cl-ppcre:do-matches (start end "MAS" line)
-             (push (elt corresponding-coordinates-line (1+ start)) coordinates))
+             (push (elt indices-line (1+ start)) centerpoints))
         do (cl-ppcre:do-matches (start end "SAM" line)
-             (push (elt corresponding-coordinates-line (1+ start)) coordinates))
-        finally (return coordinates)))
+             (push (elt indices-line (1+ start)) centerpoints))
+        finally (return centerpoints)))
 
 (defun angle-class-compute-intersections (input transform h)
-  (let ((indices (index-transform input)))
-    (let ((first-pass (collect-mas-centerpoints (funcall transform input)
-                                                (funcall transform indices)))
-          (second-pass (collect-mas-centerpoints (funcall transform (clockwise-transform input))
-                                                 (funcall transform (clockwise-transform indices)))))
-      (flet ((key (index) (intern (format nil "~A" index))))
-        (loop for elt in (append first-pass second-pass)
+  (let* ((indices (index-transform input))
+         (points (append (collect-mas-centerpoints (funcall transform input)
+                                                   (funcall transform indices))
+                         (collect-mas-centerpoints (funcall transform (clockwise-transform input))
+                                                   (funcall transform (clockwise-transform indices))))))
+    (flet ((key (index) (intern (format nil "~A" index))))
+        (loop for elt in points
               do (if (gethash (key elt) h)
                      (incf (gethash (key elt) h))
-                     (setf (gethash (key elt) h) 1)))))))
+                     (setf (gethash (key elt) h) 1))))))
 
 (defun clockwise-diagonal-transform (input)
   (diagonal-transform (clockwise-transform input)))
@@ -116,14 +116,11 @@ This returns the row and column that the A was found at"
                  (c 0))
              (apply 'angle-class-compute-intersections (append args (list h)))
              (maphash (lambda (k v)
-                        ;; (format t "k: ~A, v: ~A~%" k v)
                         (when (= v 2)
                           (incf c)))
                       h)
              c)))
-    (let ((input (read-input)))
-      (+ ;; (do-count input #'null-transform) ;; DO NOT INCLUDE NON-DIAGONAL CROSSES
-         (do-count input #'diagonal-transform)))))
+    (do-count (read-input) #'diagonal-transform)))
 
 (main-part-2)
 
@@ -131,16 +128,14 @@ This returns the row and column that the A was found at"
 
 (defun main-part-1 ()
   (let* ((input (read-input))
-         (line-length (length (car input))))
-    (let ((null (count-xmas-matches (null-transform input)))
-          (clockwise (count-xmas-matches (clockwise-transform input)))
-          (diagonal (count-xmas-matches (diagonal-transform input)))
-          (clockwise-diagonal (count-xmas-matches (clockwise-diagonal-transform input))))
-      (format t "null: ~A~%" null)
-      (format t "clockwise: ~A~%" clockwise)
-      (format t "diagonal: ~A~%" diagonal)
-      (format t "clockwise-diagonal: ~A~%" clockwise-diagonal)
-      (format t "total: ~A~%" (+ null clockwise diagonal clockwise-diagonal)))))
+         (line-length (length (car input)))
+         (null (count-xmas-matches (null-transform input)))
+         (clockwise (count-xmas-matches (clockwise-transform input)))
+         (diagonal (count-xmas-matches (diagonal-transform input)))
+         (clockwise-diagonal (count-xmas-matches (clockwise-diagonal-transform input)))
+         (total (+ null clockwise diagonal clockwise-diagonal)))
+    (format t "null: ~A, clockwise: ~A, diagonal: ~A, clockwise-diagonal: ~A | total: ~A~%"
+               null      clockwise      diagonal      clockwise-diagonal       total)))
 
 (main-part-1)
 
@@ -149,19 +144,15 @@ This returns the row and column that the A was found at"
 (defun generate-all-crosses (input)
   (loop
     for row from 1 below (1- (length input))
-    append 
-       (flet ((at (row column) (elt (elt input row) column))
-              (ch2s (c) (char-array-to-string c)))
-         (loop
-           for column from 1 below (1- (length input))
-           do (list (ch2s (list (at row (1- column)) (at row column) (at row (1+ column)))) ;; DO NOT INCLUDE NON DIAGONAL CROSSES
-                         (ch2s (list (at (1- row) column) (at row column) (at (1+ row) column))))
-           collect (list (ch2s (list (at (1- row) (1- column)) (at row column) (at (1+ row) (1+ column))))
-                         (ch2s (list (at (1+ row) (1- column)) (at row column) (at (1- row) (1+ column)))))))))
+    append (flet ((at (row column) (elt (elt input row) column)))
+             (loop
+               for column from 1 below (1- (length input))
+               collect (list (list (at (1- row) (1- column)) (at row column) (at (1+ row) (1+ column)))
+                             (list (at (1+ row) (1- column)) (at row column) (at (1- row) (1+ column))))))))
 
 (defun mas (s)
-  (or (string-equal "MAS" s)
-      (string-equal "SAM" s)))
+  (or (equal '(#\M #\A #\S) s) 
+      (equal '(#\S #\A #\M) s)))
 
 (defun main-part-2-a ()
   (loop for (first second) in (generate-all-crosses (read-input))
