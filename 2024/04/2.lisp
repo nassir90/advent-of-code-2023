@@ -81,36 +81,26 @@
 (defun collect-mas-centerpoints (grid corresponding-coordinates)
   "Iterate over the rows of the grid and try to find the string MAS.
 This returns the row and column that the A was found at"
-  (loop for line in grid
+  (loop with coordinates
+        for line in grid
         for corresponding-coordinates-line in corresponding-coordinates
-        with coordinates
         do (cl-ppcre:do-matches (start end "MAS" line)
              (push (elt corresponding-coordinates-line (1+ start)) coordinates))
         do (cl-ppcre:do-matches (start end "SAM" line)
              (push (elt corresponding-coordinates-line (1+ start)) coordinates))
         finally (return coordinates)))
 
-
-(defun angle-class-compute-intersections-root (input indices)
-  (coll
-
 (defun angle-class-compute-intersections (input transform h)
   (let ((indices (index-transform input)))
-    (let ((first-pass (collect-mas-centerpoints (funcall transform input) (funcall transform indices)))
-          (second-pass (collect-mas-centerpoints (funcall transform (clockwise-transform input)) (funcall transform (clockwise-transform indices)))))
+    (let ((first-pass (collect-mas-centerpoints (funcall transform input)
+                                                (funcall transform indices)))
+          (second-pass (collect-mas-centerpoints (funcall transform (clockwise-transform input))
+                                                 (funcall transform (clockwise-transform indices)))))
       (flet ((key (index) (intern (format nil "~A" index))))
-          (loop for elt in first-pass
-                do (if (gethash (key elt) h)
-                       (incf (gethash (key elt) h))
-                       (setf (gethash (key elt) h) 1)))
-          (loop for elt in second-pass
-                do (if (gethash (key elt) h)
-                       (incf (gethash (key elt) h))
-                       (setf (gethash (key elt) h) 1)))))))
-(let* ((grid (read-input))
-       (text-transform (clockwise-diagonal-transform grid))
-       (coords-transform (clockwise-diagonal-transform (index-transform grid))))
-  (collect-mas-centerpoints text-transform coords-transform))
+        (loop for elt in (append first-pass second-pass)
+              do (if (gethash (key elt) h)
+                     (incf (gethash (key elt) h))
+                     (setf (gethash (key elt) h) 1)))))))
 
 (defun clockwise-diagonal-transform (input)
   (diagonal-transform (clockwise-transform input)))
@@ -131,8 +121,9 @@ This returns the row and column that the A was found at"
                           (incf c)))
                       h)
              c)))
-    (+ (do-count (read-input) #'null-transform)
-       (do-count (read-input) #'diagonal-transform))))
+    (let ((input (read-input)))
+      (+ ;; (do-count input #'null-transform) ;; DO NOT INCLUDE NON-DIAGONAL CROSSES
+         (do-count input #'diagonal-transform)))))
 
 (main-part-2)
 
@@ -152,3 +143,30 @@ This returns the row and column that the A was found at"
       (format t "total: ~A~%" (+ null clockwise diagonal clockwise-diagonal)))))
 
 (main-part-1)
+
+;; sane solution for part 2 without OOP coolaid
+
+(defun generate-all-crosses (input)
+  (loop
+    for row from 1 below (1- (length input))
+    append 
+       (flet ((at (row column) (elt (elt input row) column))
+              (ch2s (c) (char-array-to-string c)))
+         (loop
+           for column from 1 below (1- (length input))
+           do (list (ch2s (list (at row (1- column)) (at row column) (at row (1+ column)))) ;; DO NOT INCLUDE NON DIAGONAL CROSSES
+                         (ch2s (list (at (1- row) column) (at row column) (at (1+ row) column))))
+           collect (list (ch2s (list (at (1- row) (1- column)) (at row column) (at (1+ row) (1+ column))))
+                         (ch2s (list (at (1+ row) (1- column)) (at row column) (at (1- row) (1+ column)))))))))
+
+(defun mas (s)
+  (or (string-equal "MAS" s)
+      (string-equal "SAM" s)))
+
+(defun main-part-2-a ()
+  (loop for (first second) in (generate-all-crosses (read-input))
+        if (and (mas first) (mas second))
+        sum 1))
+
+
+(main-part-2-a)
