@@ -9,6 +9,9 @@
   (:documentation "advance the traverser and return a new index"))
 
 (defclass diagonal-traverser ()
+  "A class I made to separate the index-generating logic of the diagonal transform from the actual
+characters that were being transformed so that I could reduce the amount of stuff I had to keep in
+my head. Might not be the best abstraction but oh well. I wanted to do some CL OOP anyway."
   ((rows :initarg :rows)
    (columns :initarg :columns)
    (location :initform 0)
@@ -24,6 +27,9 @@
       (if (< location rows) (1+ row) (- rows column)))))
 
 (defmethod traverser-advance ((d diagonal-traverser))
+  "Go upwards the current diagonal or wrap to the next diagonal strip if at the end of the current strip.
+This function returns the location of the traverser before advancing. I.e. the first invocation of this
+function will always yield (0 0)"
   (with-slots (rows columns location stage) d
     (destructuring-bind (row column) (coordinates-from-location d)
       (let ((stage-limit (stage-limit-from-location d)))
@@ -76,9 +82,10 @@ for a new strip"
                       collect (list row column))))
 
 (defun dump-grid (list)
+  "This is just a 2D array printing function"
   (loop for line in list
         do (loop for c in line do (format t "~A" c))
-           (format t "~%")))
+        (format t "~%")))
 
 (defun char-array-to-string (char-array)
   (str:join "" (mapcar #'(lambda (a) (format nil "~A" a)) char-array)))
@@ -153,8 +160,7 @@ greater than 2, it means that there's an intersection there"
 
 (defun main-part-2-a ()
   (loop for (first second) in (generate-all-crosses (read-input))
-        if (and (mas first) (mas second))
-        sum 1))
+        count (and (mas first) (mas second))))
 
 
 (main-part-2-a)
