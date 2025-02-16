@@ -17,16 +17,12 @@
 
 (defun coordinates-from-location (d)
   (with-slots (rows location) d
-    (if (< location rows)
-        (list location 0)
-        (list (1- rows) (1+ (- location rows))))))
+    (if (< location rows) (list location 0) (list (1- rows) (1+ (- location rows))))))
 
 (defun stage-limit-from-location (d)
   (destructuring-bind (row column) (coordinates-from-location d)
     (with-slots (rows location) d
-      (if (< location rows)
-          (1+ row)
-          (- rows column)))))
+      (if (< location rows) (1+ row) (- rows column)))))
 
 (defmethod traverser-advance ((d diagonal-traverser))
   (with-slots (rows columns location stage) d
@@ -46,9 +42,7 @@
 
 (defun diagonal-transform (input)
   (loop
-    with f = (make-instance 'diagonal-traverser
-                            :rows (length input)
-                            :columns (length input))
+    with f = (make-instance 'diagonal-traverser :rows (length input) :columns (length input))
     with a
     with l
     for (row column) = (traverser-advance f)
