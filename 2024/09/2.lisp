@@ -3,6 +3,11 @@
 
 (in-package :aoc-2024/day-09)
 
+(defun current-font-size ()
+  (lem-sdl2/font:font-config-size
+   (lem-sdl2/display:display-font-config
+    (lem-sdl2/display:current-display))))
+
 (defun get/create-buffer (name)
   (or (lem:get-buffer name)
       (lem/buffer/internal:make-buffer name)
@@ -12,14 +17,24 @@
   (sdl2-ttf:open-font
    (lem-sdl2/resource:get-resource-pathname
     "resources/fonts/NotoSansMono-Regular.ttf")
-   (lem-sdl2/font:font-config-size
-    (lem-sdl2/display:display-font-config
-     (lem-sdl2/display:current-display)))))
+   (current-font-size)))
+
+(defun adjust-window-according-to-layout (layout)
+  (declare (type layout layout))
+  (alexandria:when-let ((window (car (lem-core::get-buffer-windows (get/create-buffer "naza-graphical-buffer")))))
+    (let ((target (* 2 (/ (+ 20 (layout-span layout)) (current-font-size)))))
+      ;; (lem-core::window-set-size w 10 h)
+      (loop :while (> (lem-core::window-width window) target)
+            :do (shrink-window-width window 1))
+      (loop :while (< (lem-core::window-width window) target)
+            :do (grow-window-width window 1))
+      (redraw-display :force t))))
 
 (defclass b-tree ()
   ((left :initarg :left :initform nil :accessor b-left)
    (right :initarg :right :initform nil :accessor b-right)
-   (value :initarg :value :accessor b-value)))
+   (value :initarg :value :accessor b-value)
+   (color :initarg :color :accessor b-color :initform '(255 255 255))))
 
 (defgeneric b-< (a b))
 (defgeneric b-> (a b))
@@ -46,171 +61,65 @@
 (defmacro vx (v) `(aref ,v 0))
 (defmacro vy (v) `(aref ,v 1))
 
-(defclass lp1 ()
-  ((left :initarg :left :accessor lp1-left)
-   (left-root :initarg :left-root :reader lp1-left-root)
-   (width :initarg :width :reader lp1-width)
-   (right :initarg :right :reader lp1-right)
-   (right-root :initarg :right-root :reader lp1-right-root)
-   (span :initarg :span :reader lp1-span)
-   (root :initarg :root :reader lp1-root)
-   (render-root :initarg :render-root :reader lp1-render-root)))
+(defclass layout ()
+  ((left :initarg :left :accessor layout-left)
+   (left-root :initarg :left-root :reader layout-left-root)
+   (width :initarg :width :reader layout-width)
+   (right :initarg :right :reader layout-right)
+   (right-root :initarg :right-root :reader layout-right-root)
+   (span :initarg :span :reader layout-span)
+   (render-root :initarg :render-root :reader layout-render-root)))
 
-(defgeneric width-for-lp1 (object)
+(defgeneric width-for-layout (object)
   (:documentation "Get the width for an object"))
 
 (defvar margin-x 10)
 (defvar margin-y 60)
 (defvar node-height 30)
 
-(defun lp1-middle (lp1)
-  (declare (type lp1 lp1))
-  (+ (lp1-render-root lp1) (round (lp1-width lp1) 2)))
+(defun layout-middle (layout)
+  (declare (type layout layout))
+  (+ (layout-render-root layout) (round (layout-width layout) 2)))
 
-(defun lp1-v2 (tree)
+(defun layout (tree)
+  "We are interested in taking children from their untransformed coordinate spaces, 
+centering or shifting them, and from those transformations we want to compute the
+vector from the left of the span to the center and other similar vectors"
   (declare (type b-tree tree))
-  (let* ((node-width (width-for-lp1 (b-value tree)))
+  (let* ((node-width (width-for-layout (b-value tree)))
          (node-middle (round node-width 2)))
     (cond ((b-no-kids tree)
-           (make-instance 'lp1 :width node-width :span node-width :render-root 0))
+           (make-instance 'layout :width node-width :span node-width :render-root 0))
           ((and (b-left tree) (b-right tree))
-           (let* ((left (lp1-v2 (b-left tree)))
-                  (right (lp1-v2 (b-right tree)))
+           (let* ((left (layout (b-left tree)))
+                  (right (layout (b-right tree)))
                   (left-root 0)
-                  (left-middle (lp1-middle left))
-                  (right-root (+ (lp1-span left) margin-x))
-                  (right-middle (+ right-root (lp1-middle right)))
+                  (left-middle (layout-middle left))
+                  (right-root (+ (layout-span left) margin-x))
+                  (right-middle (+ right-root (layout-middle right)))
                   (overall-middle (round (+ left-middle right-middle) 2))
                   (rootward-vector (- node-middle overall-middle))
                   (span-start (min 0 (+ left-root rootward-vector)))
-                  (span-end (max node-width (+ right-root (lp1-span right) rootward-vector))))
-             (make-instance 'lp1
+                  (span-end (max node-width (+ right-root (layout-span right) rootward-vector))))
+             (make-instance 'layout
                             :width node-width
                             :span (- span-end span-start)
                             :render-root (- span-start)
                             :left left :left-root left-root
                             :right right :right-root right-root)))
           (t
-           (let* ((child (lp1-v2 (or (b-left tree) (b-right tree))))
-                  (rootward-vector (- node-middle (lp1-middle child)))
+           (let* ((child (layout (or (b-left tree) (b-right tree))))
+                  (rootward-vector (- node-middle (layout-middle child)))
                   (offset-rootward-vector (funcall (if (b-left tree) #'- #'+) rootward-vector margin-x))
                   (child-root 0)
                   (span-start (min 0 (+ child-root offset-rootward-vector)))
-                  (span-end (max node-width (+ (lp1-span child) offset-rootward-vector))))
-             (make-instance 'lp1
+                  (span-end (max node-width (+ (layout-span child) offset-rootward-vector))))
+             (make-instance 'layout
                             :width node-width
                             :span (- span-end span-start)
                             :render-root (- span-start)
                             :left (when (b-left tree) child) :left-root (max 0 (+ child-root offset-rootward-vector))
-                            :right (when (b-right tree) child) :right-root (min 0 (+ child-root offset-rootward-vector))))))))
-
-(lp1-v2 (b-tree-map-to-entity kerberos-b-tree))
-
-(defun lp1 (tree-object)
-  (when tree-object
-    (let* ((width (width-for-lp1 (b-value tree-object)))
-           (half-width (round width 2)))
-      (let ((root half-width))
-        (cond  ((and (b-left tree-object) (b-right tree-object))
-                (let* (;; First of all just correctly position the children
-                       (left (lp1 (b-left tree-object)))
-                       (right (lp1 (b-right tree-object)))
-                       ;; We need to define a transform. The steps are as follows
-                       ;;
-                       ;; For the left side
-                       ;;
-                       ;; - Do nothing
-                       ;;
-                       ;; For the right side
-                       ;; 
-                       ;; - Add span plus horizontal margin
-                       ;;
-                       ;; Now we compute the root positions and we compute the midpoint
-                       ;;
-                       ;; - Center on midpoint
-                       )
-              (flet ((pre-transform-left (x) x)
-                     (pre-transform-right (x) (+ x (lp1-span left) margin-x)))
-                (let* (;; Compute the midpoint between the roots for placing the spans
-                       (midpoint (round (+ (pre-transform-left (lp1-root left))
-                                           (pre-transform-right (lp1-root right)))
-                                        2))
-                       ;; Compute the vector from the span middle to the root middle
-                       (rootward-vector (- root midpoint)))
-                  (flet (;; Factor in pre transforms into correct span space and then the
-                         ;; subsequent centering on the root midpoint
-                         (transform-left (x) (+ (pre-transform-left x) rootward-vector))
-                         (transform-right (x) (+ (pre-transform-right x) rootward-vector)))
-                    (let* ((s-start (min (transform-left 0) 0))
-                           (s-end (max (transform-right (lp1-span right)) width))
-                           (span (- s-end s-start))
-                           (new-root (- root s-start))
-                           (span-space-corner-root (- s-start)))
-                      (make-instance 'lp1
-                                     ;; The concept behind this here is that since our leftmost childis always right up
-                                     ;; against the edge we never actually need to apply any offset to the leftmost span
-                                     ;; on the contrary, we have to add the left child span plus our margin in order to get
-                                     ;; the "render origin" for the right one.
-                                     :left left :left-root 0
-                                     :right right :right-root (+ (lp1-span left) margin-x)
-                                     :span span
-                                     :root new-root
-                                     :width width
-                                     :render-root span-space-corner-root)))))))
-           ((b-no-kids tree-object)
-            (make-instance 'lp1
-                           :span width
-                           :root root
-                           :width width
-                           :render-root 0))
-           ;; In this case there's only one kid
-           (t (flet ((child () (or (b-left tree-object) (b-right tree-object)))
-                     (childless-offset (x) (+ x (if (b-left tree-object) (- 20) 20))))
-                (let* (;; The root is the horizontal distance from the left hand side of the span to the
-                       ;; center at the top. The coordinate is then given by (x=root, y=0).
-                       (lp1-child (lp1 (child)))
-                       ;; We need to compute our own span. This is the full width that we take up after
-                       ;; positioning. Our children correctly. To translate any point on a child to its
-                       ;; "correct" position, you can:
-                       ;;
-                       ;; - Add the y margin on the y axis (20 pixels)
-                       ;; - Center it on the root by adding the rootward vector (root - subject)
-                       ;; - Shift it right by an amount equal to the "childless offset"
-                       ;;
-                       ;; Since the y offset can be inferred from the recursion depth, its not really
-                       ;; needed.
-                       (root-ward-vector (- root (lp1-root lp1-child))))
-                  (flet (;; The definition of the transform we discussed above can be captured in a local function.
-                         (transform-x (x) (childless-offset (+ root-ward-vector x))))
-                    (let* (;; For the final result we need to store the relative position of the child anchor /
-                           ;; root, so we'll just do it here
-                           (transformed-child-root (transform-x 0))
-                           ;; For the start we take the our own origin at zero and the transformed
-                           ;; zero origin.
-                           (s-start (min (transform-x 0) 0))
-                           ;; For the end we just take the max of our width and the transformed endpoint
-                           ;; which is just the transformation of the span.
-                           (s-end (max (transform-x (lp1-span lp1-child)) width))
-                           ;; Now to compute the new span we just compute the range assuming that
-                           ;; s-end > s-start (all of maths is fucking infix)
-                           (span (progn
-                                   (assert (>= s-end s-start))
-                                   (- s-end s-start)))
-                           ;; For the root, we just compute the delta from the left hand side of the span
-                           ;; to the previous proper root which we already know. This only really changes
-                           ;; if there are components to the left. It looks like a vector pointing from the
-                           ;; left to the middle, this it takes the form (middle - left)
-                           (new-root (- root s-start)))
-                      (format t "end is ~a~%" s-end)
-                      (destructuring-bind (side side-root)
-                          (if (b-left tree-object) '(:left :left-root) '(:right :right-root))
-                        (make-instance 'lp1
-                                       side lp1-child
-                                       side-root transformed-child-root
-                                       :span span
-                                       :root new-root
-                                       :width width
-                                       :render-root (- s-start)))))))))))))
+                            :right (when (b-right tree) child) :right-root (max 0 (+ child-root offset-rootward-vector))))))))
 
 (defvar kerberos-mapped-b-tree nil)
 (defvar kerberos-b-tree nil)
@@ -218,25 +127,19 @@
 (define-command wipe-naza-graphical-buffer-cache () ()
   (setf kerberos-mapped-b-tree nil))
 
-(defun bind-lp1-with-b-tree (b-tree)
-  (declare (type b-tree b-tree))
-  (wipe-naza-graphical-buffer-cache)
-  (setf kerberos-b-tree b-tree))
+(defun b-right-rotate (tree)
+  (let* ((right (b-right tree))
+         (orphan (b-left right)))
+    (setf (b-right tree) orphan)
+    (setf (b-left right) tree)
+    right))
 
-(bind-lp1-with-b-tree (b-insert (b-insert (b-insert nil 1) 2) 3))
-(bind-lp1-with-b-tree (b-insert (b-insert (b-insert nil 3) 2) 1))
-(bind-lp1-with-b-tree (b-insert (b-insert (b-insert nil 1) 2) (- 3)))
-(bind-lp1-with-b-tree (b 5
-                         (b 1)
-                         (b 50
-                            (b "love's gonna get you killed")
-                            (b 65
-                               (b (b "but pride's gonna be the death of"
-                                     "you"
-                                     (b "and me"
-                                        (b "and you")
-                                        (b "and me"))))))))
-
+(defun b-left-rotate (tree)
+  (let* ((left (b-left tree))
+         (orphan (b-right left)))
+    (setf (b-left tree) orphan)
+    (setf (b-right left) tree)
+    left))
 ;; ---
 
 (defclass naza-graphical-buffer (text-buffer) ())
@@ -265,11 +168,33 @@
   ((surface :initarg :surface :accessor entity-surface)
    (texture :initarg :texture :accessor entity-texture)))
 
-(defmethod width-for-lp1 ((entity entity))
+(defmethod width-for-layout ((entity entity))
   (sdl2:surface-width (entity-surface entity)))
 
-(defun make-entity (value)
-  (let* ((surface (sdl2-ttf:render-utf8-blended (load-font) (format nil " ~a " value) 255 255 255 0))
+(defgeneric make-entity (value))
+
+(defmethod make-entity (value)
+  (make-entity (make-instance 'annotated :value value :color '(255 255 255))))
+
+(defclass annotated ()
+  ((color :initarg :color :accessor a-color)
+   (value :initarg :value :accessor a-value)))
+
+;; Definitely not efficient...
+(defmethod b-< ((a annotated) (b number)) (b-< (a-value a) b))
+(defmethod b-< ((a number) (b annotated)) (b-< a (a-value b)))
+(defmethod b-> ((a annotated) (b number)) (b-> (a-value a) b))
+(defmethod b-> ((a number) (b annotated)) (b-> a (a-value b)))
+
+(defmethod b-< ((a annotated) (b annotated)) (b-< (a-value a) (a-value b)))
+(defmethod b-> ((a annotated) (b annotated)) (b-> (a-value a) (a-value b)))
+(defmethod b-= ((a annotated) (b annotated)) (b-= (a-value a) (a-value b)))
+
+(defun annotate (value color)
+  (make-instance 'annotated :value value :color color))
+
+(defmethod make-entity ((value annotated))
+  (let* ((surface (apply #'sdl2-ttf:render-utf8-blended `(,(load-font) ,(format nil " ~a " (a-value value)) ,@(a-color value) 0)))
          (texture (sdl2:create-texture-from-surface (lem-sdl2:current-renderer) surface)))
     (make-instance 'entity :surface surface :texture texture)))
 
@@ -290,56 +215,40 @@
     (with-current-buffer buffer
       (insert-string (buffer-end-point buffer) k))))
   
-(defun recursively-render-entity-mapped-b-tree (mapped-b-tree lp1 origin)
+(defun recursively-render-entity-mapped-b-tree (mapped-b-tree layout origin)
   (declare (type b-tree mapped-b-tree)
-           (type lp1 lp1)
+           (type layout layout)
            (type vector origin))
   (sdl2:set-render-draw-color (lem-sdl2:current-renderer) 255 255 255 0)
-  (sdl2:with-rects ((dest-rect (+ (vx origin) (lp1-render-root lp1)) (vy origin)
-                               (width-for-lp1 (b-value mapped-b-tree)) node-height))
+  (sdl2:with-rects ((dest-rect (+ (vx origin) (layout-render-root layout)) (vy origin)
+                               (width-for-layout (b-value mapped-b-tree)) node-height))
     (sdl2:render-copy (lem-sdl2:current-renderer) (entity-texture (b-value mapped-b-tree)) :dest-rect dest-rect)
     (sdl2:render-draw-rect (lem-sdl2:current-renderer) dest-rect))
   (when (b-left mapped-b-tree)
     (sdl2:render-draw-line (lem-sdl2:current-renderer)
-                           (+ (vx origin) (lp1-middle lp1))
+                           (+ (vx origin) (layout-middle layout))
                            (+ (vy origin) node-height)
-                           (+ (vx origin) (lp1-middle (lp1-left lp1)))
+                           (+ (vx origin) (layout-middle (layout-left layout)))
                            (+ (vy origin) margin-y))
     (recursively-render-entity-mapped-b-tree
      (b-left mapped-b-tree)
-     (lp1-left lp1)
+     (layout-left layout)
      (vector (vx origin) (+ (vy origin) margin-y))))
   (when (b-right mapped-b-tree)
     (sdl2:render-draw-line (lem-sdl2:current-renderer)
-                           (+ (vx origin) (lp1-middle lp1))
+                           (+ (vx origin) (layout-middle layout))
                            (+ (vy origin) node-height)
-                           (+ (vx origin) (lp1-right-root lp1) (lp1-middle (lp1-right lp1)))
+                           (+ (vx origin) (layout-right-root layout) (layout-middle (layout-right layout)))
                            (+ (vy origin) margin-y))
     (recursively-render-entity-mapped-b-tree
      (b-right mapped-b-tree)
-     (lp1-right lp1)
-     (vector (+ (vx origin) (lp1-right-root lp1)) (+ (vy origin) margin-y)))))
-
-(let ((kerberos-mapped-b-tree (b-tree-map-to-entity kerberos-b-tree)))
-  (recursively-render-entity-mapped-b-tree kerberos-mapped-b-tree (lp1 kerberos-mapped-b-tree) (vector 0 0)))
-
+     (layout-right layout)
+     (vector (+ (vx origin) (layout-right-root layout)) (+ (vy origin) margin-y)))))
 (defun destroy-entity (entity)
   (declare (type entity entity))
   (with-slots (texture surface) entity
     (sdl2:destroy-texture texture)
     (sdl2:free-surface surface)))
-
-(defun sinisoidal-render-function (texture window buffer)
-  (let ((renderer (lem-sdl2:current-renderer)))
-    (sdl2:set-render-target renderer texture)
-    (let ((sinusoidal-x (round  (+ 100 (* 50 (sin  (/ (get-internal-real-time) 1000000))) ))))
-      (unless entity
-        (setf entity (make-entity "rizzler")))
-      (sdl2:with-rects ((dest 100 sinusoidal-x (sdl2:surface-width (entity-surface entity)) (sdl2:surface-height (entity-surface entity))))
-        (sdl2:render-copy renderer (entity-texture entity) :dest-rect dest))
-      (sdl2:with-rects ((dest 100 sinusoidal-x 100 100))
-        (sdl2:set-render-draw-color renderer 255 255 255 0)
-        (sdl2:render-draw-rect renderer dest)))))
 
 ;; We override the render function for our custom buffer type
 (defmethod lem-sdl2:render (texture window (buffer naza-graphical-buffer))
@@ -347,4 +256,40 @@
     (sdl2:set-render-target renderer texture)
     (unless kerberos-mapped-b-tree
       (setq kerberos-mapped-b-tree (b-tree-map-to-entity kerberos-b-tree)))
-    (recursively-render-entity-mapped-b-tree kerberos-mapped-b-tree (lp1 kerberos-mapped-b-tree) (vector 0 20))))
+    (recursively-render-entity-mapped-b-tree kerberos-mapped-b-tree (layout kerberos-mapped-b-tree) (vector 15 20))))
+
+
+;;; --- "user logic"
+
+(defun bind-layout-with-b-tree (b-tree)
+  (declare (type b-tree b-tree))
+  (wipe-naza-graphical-buffer-cache)
+  (setf kerberos-b-tree b-tree)
+  (adjust-window-according-to-layout (layout (b-tree-map-to-entity kerberos-b-tree))))
+
+(bind-layout-with-b-tree (b-insert (b-insert (b-insert nil 1) 2) 3))
+(bind-layout-with-b-tree (b-insert (b-insert (b-insert nil 3) 2) 1))
+(bind-layout-with-b-tree (b-insert (b-insert (b-insert nil 1) 2) (- 3)))
+(bind-layout-with-b-tree (b 5
+                            (b 1)
+                            (identity (b (annotate 50 '(10 255 10))
+                                         (b (annotate 40 '(255 10 10)))
+                                         (b (annotate 40 '(50 50 255))
+                                            (b-tree-map (b 60
+                                               (b 56
+                                                  (b 55)
+                                                  (b 57)))
+                                                        (lambda (tree) (annotate tree '(100 100 255)))))))))
+(bind-layout-with-b-tree (b-insert (b 5
+                            (b 1)
+                            (identity (b (annotate 50 '(10 255 10))
+                                         (b (annotate 40 '(255 10 10)))
+                                         (b (annotate 40 '(50 50 255))
+                                            (b-tree-map (b 60
+                                                           (b 56
+                                                              (b 55)
+                                                              (b 57)))
+                                                        (lambda (tree) (annotate tree '(100 100 255)))))))) 66.132))
+
+(let ((kerberos-mapped-b-tree (b-tree-map-to-entity kerberos-b-tree)))
+  (recursively-render-entity-mapped-b-tree kerberos-mapped-b-tree (layout kerberos-mapped-b-tree) (vector 0 0)))
