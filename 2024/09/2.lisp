@@ -84,9 +84,9 @@
 (defgeneric width-for-layout (object)
   (:documentation "Get the width for an object"))
 
-(defvar margin-x 10)
-(defvar margin-y 60)
-(defvar node-height 30)
+(defparameter margin-x 10)
+(defparameter margin-y 60)
+(defparameter node-height 30)
 
 (defun layout-middle (layout)
   (declare (type layout layout))
@@ -132,8 +132,8 @@ vector from the left of the span to the center and other similar vectors"
                             :left (when (b-left tree) child) :left-root (max 0 (+ child-root offset-rootward-vector))
                             :right (when (b-right tree) child) :right-root (max 0 (+ child-root offset-rootward-vector))))))))
 
-(defvar kerberos-mapped-b-tree nil)
-(defvar kerberos-b-tree nil)
+(defparameter kerberos-mapped-b-tree nil)
+(defparameter kerberos-b-tree nil)
 
 (define-command wipe-naza-graphical-buffer-cache () ()
   (setf kerberos-mapped-b-tree nil))
