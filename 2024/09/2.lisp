@@ -34,7 +34,8 @@
   ((left :initarg :left :initform nil :accessor b-left)
    (right :initarg :right :initform nil :accessor b-right)
    (value :initarg :value :accessor b-value)
-   (color :initarg :color :accessor b-color :initform '(255 255 255))))
+   (color :initarg :color :accessor b-color :initform '(255 255 255))
+   (height :initform 1 :accessor b-height)))
 
 (defgeneric b-< (a b))
 (defgeneric b-> (a b))
@@ -51,12 +52,22 @@
   (make-instance 'b-tree :value value :left left :right right))
 
 (defun b-insert (b-tree newlet)
-  (if b-tree
-      (with-slots (left right value) b-tree
-        (cond ((b-< newlet value) (b value (b-insert left newlet) right))
-              ((b-> newlet value) (b value left (b-insert right newlet)))
-              ((b-= newlet value) (b newlet left right))))
-      (b newlet)))
+  (let* ((m-tree
+          (if b-tree
+              (with-slots (left right value) b-tree
+                (cond ((b-< newlet value)
+                       (b value (b-insert left newlet) right))
+                      ((b-> newlet value)
+                       (b value left (b-insert right newlet)))
+                      ((b-= newlet value)
+                       (b newlet left right))))
+              (b newlet)))
+         (m-left (b-left m-tree))
+         (m-right (b-right m-tree)))
+    (setf (b-height m-tree)
+          (1+ (max (if m-left (b-height m-left) 0)
+                   (if m-right (b-height m-right) 0))))
+    m-tree))
 
 (defmacro vx (v) `(aref ,v 0))
 (defmacro vy (v) `(aref ,v 1))
