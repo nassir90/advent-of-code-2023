@@ -1,5 +1,8 @@
 ;; File for part 2 of day 2 2024
 
+(in-package :aoc-2024)
+(in-readtable :interpol-syntax)
+
 (ql:quickload "str")
 (ql:quickload "uiop")
 

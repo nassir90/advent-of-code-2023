@@ -1,5 +1,6 @@
 (defpackage :aoc-2024/day-09
-  (:use #:cl #:aoc-2024 #:lem))
+  (:use #:cl #:aoc-2024 #:lem #:alexandria #:aoc-2024/dsa/tree)
+  (:import-from #:aoc-2024/dsa/tree))
 
 (in-package :aoc-2024/day-09)
 
@@ -8,66 +9,29 @@
    (lem-sdl2/display:display-font-config
     (lem-sdl2/display:current-display))))
 
-(defun get/create-buffer (name)
-  (or (lem:get-buffer name)
-      (lem/buffer/internal:make-buffer name)
-      (error "failed to execute get or create operation")))
-
 (defun load-font ()
   (sdl2-ttf:open-font
    (lem-sdl2/resource:get-resource-pathname
     "resources/fonts/NotoSansMono-Regular.ttf")
    (current-font-size)))
 
+(defun get/create-buffer (name)
+  (declare (type string name))
+  (or (lem:get-buffer name)
+      (lem/buffer/internal:make-buffer name)
+      (error "failed to execute get or create operation")))
+
 (defun adjust-window-according-to-layout (layout)
   (declare (type layout layout))
-  (alexandria:when-let ((window (car (lem-core::get-buffer-windows (get/create-buffer "naza-graphical-buffer")))))
-    (let ((target (* 2 (/ (+ 20 (layout-span layout)) (current-font-size)))))
-      ;; (lem-core::window-set-size w 10 h)
+  (when-let* ((buffer-windows (lem-core::get-buffer-windows (get/create-buffer "naza-graphical-buffer")))
+              (window (first buffer-windows)))
+    (let (
+          (target (* 2 (/ (+ 20 (layout-span layout)) (current-font-size)))))
       (loop :while (> (lem-core::window-width window) target)
             :do (shrink-window-width window 1))
       (loop :while (< (lem-core::window-width window) target)
             :do (grow-window-width window 1))
       (redraw-display :force t))))
-
-(defclass b-tree ()
-  ((left :initarg :left :initform nil :accessor b-left)
-   (right :initarg :right :initform nil :accessor b-right)
-   (value :initarg :value :accessor b-value)
-   (color :initarg :color :accessor b-color :initform '(255 255 255))
-   (height :initform 1 :accessor b-height)))
-
-(defgeneric b-< (a b))
-(defgeneric b-> (a b))
-(defgeneric b-= (a b))
-
-(defmethod b-< ((a number) (b number)) (< a b))
-(defmethod b-> ((a number) (b number)) (> a b))
-(defmethod b-= ((a number) (b number)) (= a b))
-
-(defun b-no-kids (b-tree)
-  (not (or (b-left b-tree) (b-right b-tree))))
-
-(defun b (value &optional left right)
-  (make-instance 'b-tree :value value :left left :right right))
-
-(defun b-insert (b-tree newlet)
-  (let* ((m-tree
-          (if b-tree
-              (with-slots (left right value) b-tree
-                (cond ((b-< newlet value)
-                       (b value (b-insert left newlet) right))
-                      ((b-> newlet value)
-                       (b value left (b-insert right newlet)))
-                      ((b-= newlet value)
-                       (b newlet left right))))
-              (b newlet)))
-         (m-left (b-left m-tree))
-         (m-right (b-right m-tree)))
-    (setf (b-height m-tree)
-          (1+ (max (if m-left (b-height m-left) 0)
-                   (if m-right (b-height m-right) 0))))
-    m-tree))
 
 (defmacro vx (v) `(aref ,v 0))
 (defmacro vy (v) `(aref ,v 1))
@@ -291,6 +255,31 @@ vector from the left of the span to the center and other similar vectors"
                                                   (b 55)
                                                   (b 57)))
                                                         (lambda (tree) (annotate tree '(100 100 255)))))))))
+
+(defun fill-heights (b-tree)
+  (declare (type b-tree b-tree))
+  (let ((left (b-left b-tree))
+        (right (b-right b-tree)))
+    (when left (fill-heights left))
+    (when right (fill-heights right))
+    (setf (b-height b-tree)
+          (1+ (max (if left (b-height left) 0)
+                   (if right (b-height right) 0))))
+    b-tree))
+
+(bind-layout-with-b-tree (fill-heights (b 5
+   (b 1)
+   (identity (b (annotate 50 '(10 255 10))
+                (b (annotate 40 '(255 10 10)))
+                (b (annotate 40 '(50 50 255))
+                   (b-tree-map (b 60
+                                  (b 56
+                                     (b 55)
+                                     (b 57)))
+                               (lambda (tree) (annotate tree '(100 100 255)))))))))
+
+)
+
 (bind-layout-with-b-tree (b-insert (b 5
                             (b 1)
                             (identity (b (annotate 50 '(10 255 10))

@@ -155,8 +155,7 @@ greater than 2, it means that there's an intersection there"
                              (list (at (1+ row) (1- column)) (at row column) (at (1- row) (1+ column))))))))
 
 (defun mas (s)
-  (or (equal '(#\M #\A #\S) s) 
-      (equal '(#\S #\A #\M) s)))
+  (or (equal '(#\M #\A #\S) s) (equal '(#\S #\A #\M) s)))
 
 (defun main-part-2-a ()
   (loop for (first second) in (generate-all-crosses (read-input))
