@@ -25,8 +25,7 @@
   (declare (type layout layout))
   (when-let* ((buffer-windows (lem-core::get-buffer-windows (get/create-buffer "naza-graphical-buffer")))
               (window (first buffer-windows)))
-    (let (
-          (target (* 2 (/ (+ 20 (layout-span layout)) (current-font-size)))))
+    (let ((target (* 2 (/ (+ 20 (layout-span layout)) (current-font-size)))))
       (loop :while (> (lem-core::window-width window) target)
             :do (shrink-window-width window 1))
       (loop :while (< (lem-core::window-width window) target)
@@ -102,19 +101,6 @@ vector from the left of the span to the center and other similar vectors"
 (define-command wipe-naza-graphical-buffer-cache () ()
   (setf kerberos-mapped-b-tree nil))
 
-(defun b-right-rotate (tree)
-  (let* ((right (b-right tree))
-         (orphan (b-left right)))
-    (setf (b-right tree) orphan)
-    (setf (b-left right) tree)
-    right))
-
-(defun b-left-rotate (tree)
-  (let* ((left (b-left tree))
-         (orphan (b-right left)))
-    (setf (b-left tree) orphan)
-    (setf (b-right left) tree)
-    left))
 ;; ---
 
 (defclass naza-graphical-buffer (text-buffer) ())
@@ -219,6 +205,7 @@ vector from the left of the span to the center and other similar vectors"
      (b-right mapped-b-tree)
      (layout-right layout)
      (vector (+ (vx origin) (layout-right-root layout)) (+ (vy origin) margin-y)))))
+
 (defun destroy-entity (entity)
   (declare (type entity entity))
   (with-slots (texture surface) entity
