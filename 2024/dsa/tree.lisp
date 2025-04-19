@@ -146,9 +146,11 @@ in that case."
 and the second value being the value of the node that was deleted"
   (declare (type b-tree tree))
   (if (b-right tree)
-      (multiple-value-bind (after-removal removed) (b-remove-rightmost (b-right tree))
+      (multiple-value-bind (right-after-removal removed) (b-remove-rightmost (b-right tree))
         (values
-         (b-balance (b (b-value tree) (b-left tree) after-removal))
+         (b-balance (b (b-value tree)
+                       (b-left tree)
+                       right-after-removal))
          removed))
       (values (b-left tree) (b-value tree))))
 
@@ -157,24 +159,31 @@ and the second value being the value of the node that was deleted"
 and the second value being the value of the node that was deleted"
   (declare (type b-tree tree))
   (if (b-left tree)
-      (multiple-value-bind (after-removal removed) (b-remove-leftmost (b-left tree))
+      (multiple-value-bind (left-after-removal removed) (b-remove-leftmost (b-left tree))
         (values
-         (b-balance (b (b-value tree) after-removal (b-right tree)))
+         (b-balance (b (b-value tree)
+                       left-after-removal
+                       (b-right tree)))
          removed))
       (values (b-right tree) (b-value tree))))
 
-(defun b-remove (tree value)
+(defun b-remove (tree target)
+  "Either defer the removal to a subnode or remove from the current node. Preserves balance"
   (declare (type (or null b-tree) b-tree))
   (when tree
-    (b-balance
-     (b-with-fixed-heights
-      (cond ((b-< value (b-value tree))
-             (b (b-value tree) (b-remove (b-left tree) value) (b-right tree)))
-            ((b-= value (b-value tree))
-             (cond ((b-no-kids tree) nil)
-                   ((and (b-left tree) (b-right tree))
-                    (multiple-value-bind (right-after-removal successor) (b-remove-leftmost (b-right tree))
-                      (b successor (b-left tree) right-after-removal)))
-                   (t (or (b-left tree) (b-right tree)))))
-            ((b-< (b-value tree) value)
-             (b (b-value tree) (b-left tree) (b-remove (b-right tree) value))))))))
+    (with-slots (value left right)
+        (b-balance
+         (cond
+           ((b-< target value)
+            (b value (b-remove left target) right))
+           ((b-< value target)
+            (b value left (b-remove right target)))
+           ((b-= target value)
+            (cond
+              ((b-no-kids tree) nil)
+              ((and left right)
+               (multiple-value-bind (right-after-removal successor) (b-remove-leftmost right)
+                 (b successor
+                    left
+                    right-after-removal)))
+              (t (or left right)))))))))
