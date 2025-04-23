@@ -1,6 +1,9 @@
 ;; File for part 2 of day 2 2024
 
-(in-package :aoc-2024)
+(defpackage :aoc-2024/day-02
+  (:use #:cl #:aoc-2024))
+
+(in-package :aoc-2024/day-02)
 (in-readtable :interpol-syntax)
 
 (ql:quickload "str")

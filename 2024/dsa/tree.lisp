@@ -1,9 +1,12 @@
 (defpackage :aoc-2024/dsa/tree
-  (:use #:cl #:aoc-2024 #:lem #:alexandria)
+  (:use #:cl #:alexandria)
   (:export :b-tree :b 
            :b-left :b-right :b-value :b-height
            :b-< :b-> :b-=
-           :b-insert :b-no-kids))
+           :b-insert :b-no-kids
+           :b-map
+           :b-with-recursively-fixed-heights
+           :b-loop))
 
 (in-package :aoc-2024/dsa/tree)
 
@@ -15,6 +18,7 @@
    (value :initarg :value :accessor b-value)
    (color :initarg :color :accessor b-color :initform '(255 255 255))
    (height :initform 1 :accessor b-height)))
+
 (defun b-no-kids (b-tree)
   (not (or (b-left b-tree) (b-right b-tree))))
 
@@ -47,11 +51,35 @@ correctly, configure the heights of this b-tree."
                    (b-height-right b-tree))))
     (the b-tree b-tree)))
 
+(defun b-map (b-tree function)
+  "Loop through the tree and mutate its elements"
+  (declare (type b-tree b-tree))
+  (b (funcall function (b-value b-tree))
+     (and (b-left b-tree) (b-map (b-left b-tree) function))
+     (and (b-right b-tree) (b-map (b-right b-tree) function))))
+
+(defmacro b-loop (lambda-list &body body)
+  "Loop through the tree in order as a macro... This probably doesn't
+need to be a macro but it is."
+  (destructuring-bind (var-symbol tree-symbol) lambda-list
+    `(labels ((invoke (,var-symbol)
+                ,@body)
+              (recurse (tree)
+                (when (b-left tree)
+                  (recurse (b-left tree)))
+                (invoke (b-value tree))
+                (when (b-right tree)
+                  (recurse (b-right tree)))))
+       (recurse ,tree-symbol))))
+
 #| Necessary logic for b tree insertion |#
 
 (defgeneric b-< (a b))
 (defgeneric b-> (a b))
 (defgeneric b-= (a b))
+
+;; Default implementation
+(defmethod b-> (a b) (b-< b a))
 
 (defmethod b-< ((a number) (b number)) (< a b))
 (defmethod b-> ((a number) (b number)) (> a b))
