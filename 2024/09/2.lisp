@@ -5,16 +5,17 @@
 
 (in-package :aoc-2024/day-09)
 
-#| rendering lgoic |#
+;; RENDERING LGOIC SECTION
 
 (defmacro vx (v) `(aref ,v 0))
 (defmacro vy (v) `(aref ,v 1))
 
-#| lem mode options |#
+;; LEM MODE OPTIONS
 
-(defclass naza-graphical-buffer (text-buffer) ())
+(defclass naza-graphical-buffer (text-buffer)
+  ((mapped-b-tree)
+   (b-tree)))
 
-;; TODO: MAKE THESE PROPERTIES ON THE GRAPHICAL BUFFER OBJECT!
 (defparameter kerberos-mapped-b-tree nil)
 (defparameter kerberos-b-tree nil)
 
@@ -29,9 +30,7 @@
 
 (lem:define-major-mode naza-graphical-mode ()
   (:name "Graphical Mode"
-   :keymap *naza-graphical-mode*)
-  ;; (setf (lem:buffer-read-only-p (lem:current-buffer)) t)
-  )
+   :keymap *naza-graphical-mode*))
 
 (lem:define-command kill-current-buffer () ()
   (lem:delete-buffer (lem:current-buffer)))
@@ -105,11 +104,17 @@
   ((color :initarg :color :accessor a-color)
    (value :initarg :value :accessor a-value)))
 
-;; Definitely not efficient...
-(defmethod b-< ((a annotated) (b number)) (b-< (a-value a) b))
-(defmethod b-< ((a number) (b annotated)) (b-< a (a-value b)))
-(defmethod b-< ((a annotated) (b annotated)) (b-< (a-value a) (a-value b)))
-(defmethod b-= ((a annotated) (b annotated)) (b-= (a-value a) (a-value b)))
+(defmethod b-< ((a annotated) (b number))
+  (b-< (a-value a) b))
+
+(defmethod b-< ((a number) (b annotated))
+  (b-< a (a-value b)))
+
+(defmethod b-< ((a annotated) (b annotated))
+  (b-< (a-value a) (a-value b)))
+
+(defmethod b-= ((a annotated) (b annotated))
+  (b-= (a-value a) (a-value b)))
 
 (defun annotate (value color)
   (make-instance 'annotated :value value :color color))
@@ -130,15 +135,12 @@
     (with-current-buffer buffer
       (insert-string (buffer-end-point buffer) k))))
 
-
-
 (defun destroy-entity (entity)
   (declare (type entity entity))
   (with-slots (texture surface) entity
     (sdl2:destroy-texture texture)
     (sdl2:free-surface surface)))
 
-;; We override the render function for our custom buffer type
 (defmethod lem-sdl2:render (texture window (buffer naza-graphical-buffer))
   (let ((renderer (lem-sdl2:current-renderer)))
     (sdl2:set-render-target renderer texture)
@@ -147,7 +149,7 @@
     (recursively-render-entity-mapped-b-tree kerberos-mapped-b-tree (layout kerberos-mapped-b-tree) (vector 15 20))))
 
 
-;;; --- "user logic"
+;;; GRAPHICAL BUFFER MANIPULATION SECTION
 
 (defun bind-layout-with-b-tree (b-tree)
   (declare (type b-tree b-tree))
@@ -199,10 +201,12 @@
 
 (some-logic-to-ignore)
 
-#| solution |#
+;; STRING LOGIC SECTION
 
 (defun string-to-list (string)
   (loop for character across string collect (read-from-string (string character))))
+
+;; SOLUTION SECTION
 
 (defclass entry ()
   ((key :initarg :key :accessor key)
@@ -217,24 +221,41 @@
 (defun entry (key value)
   (make-instance 'entry :key key :value value))
 
-(defun nigz ()
+;; Class used for both spaces and blocks
+(defstruct span
+  (location nil :type integer)
+  (size nil :type integer))
+
+(defmethod b-< ((a span) (b span))
+  (< (span-location a) (span-location b)))
+
+(defmethod b-= ((a span) (b span))
+  (= (span-location a) (span-location b)))
+
+(defun nigz (queue)
   (let ((spaces nil)
         (blocks nil)
-        (cursor 0)
-        (queue (list 1 2 3)))
+        (cursor 0))
     (labels ((process-space ()
                (when-let ((size (pop queue)))
-                 (push size spaces)
+                 (setf spaces (b-insert spaces (make-span :location cursor :size size)))
                  (setf cursor (+ cursor size))
                  (process-block)))
              (process-block ()
                (when-let ((size (pop queue)))
-                 (push size blocks)
+                 (push (make-span :location cursor :size size) blocks)
                  (setf cursor (+ cursor size))
                  (process-space))))
-      (process-block))))
+      (process-block))
+    spaces))
 
-(nigz)
+(defmethod print-object ((span span) stream)
+  (format stream "#<location=~A size=~A>" (span-location span) (span-size span)))
+
+(let ((spaces nil))
+  (b-loop (space (nigz (string-to-list "1111")))
+    (push space spaces))
+  spaces)
 
 (defun solution ()
   (dolist (block block-queue)

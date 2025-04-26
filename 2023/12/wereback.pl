@@ -1,6 +1,6 @@
 #!/usr/bin/perl -F'\s' -nl
 BEGIN {
-  $reps = $ENV{REPS} // 5;
+  $reps = $ENV{REPS} // 2;
 
   %colors = (red => [255,000,000],
              orange => [125, 50, 50],
